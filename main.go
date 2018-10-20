@@ -51,8 +51,10 @@ func api(w http.ResponseWriter, r *http.Request) {
 
 		switch clientMessage.Type {
 		case "create-game":
+			fmt.Println("Create Game")
 			connection.WriteMessage(1, createGame(clientMessage.Data))
 		case "join-game":
+			fmt.Println("Join Game")
 			connection.WriteMessage(1, joinGame(clientMessage.Data))
 		case "start-game":
 			//Start game
@@ -77,7 +79,10 @@ func createGame(data string) []byte {
 		//Add game to database (if it doesn't already exist)
 		//Inform user of generated game w/code
 
-		return clientReturn("OK", code)
+		returnMessage := clientReturn("OK", code)
+		fmt.Println(string(returnMessage))
+
+		return returnMessage
 	} else {
 		code = gameJoin.Code
 		//Add game to database (if it doesn't already exist)
