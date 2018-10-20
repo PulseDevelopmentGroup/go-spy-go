@@ -19,11 +19,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type ClientMessage struct {
-	Type, Data string
+	response, data string
 }
 
 type GameJoin struct {
-	Code, Username string
+	code, username string
 }
 
 func main() {
@@ -49,11 +49,13 @@ func api(w http.ResponseWriter, r *http.Request) {
 		var clientMessage ClientMessage
 		connection.ReadJSON(&clientMessage)
 
-		switch clientMessage.Type {
+		switch clientMessage.response {
 		case "create-game":
-			connection.WriteMessage(1, createGame(clientMessage.Data))
+			fmt.Println("Create Game")
+			connection.WriteMessage(1, createGame(clientMessage.data))
 		case "join-game":
-			connection.WriteMessage(1, joinGame(clientMessage.Data))
+			fmt.Println("Join Game")
+			connection.WriteMessage(1, joinGame(clientMessage.data))
 		case "start-game":
 			//Start game
 		case "stop-game":
@@ -72,14 +74,17 @@ func createGame(data string) []byte {
 
 	fmt.Println(data)
 
-	if gameJoin.Code == "" {
+	if gameJoin.code == "" {
 		code = generateCode()
 		//Add game to database (if it doesn't already exist)
 		//Inform user of generated game w/code
 
-		return clientReturn("OK", code)
+		returnMessage := clientReturn("OK", code)
+		fmt.Println(string(returnMessage))
+
+		return returnMessage
 	} else {
-		code = gameJoin.Code
+		code = gameJoin.code
 		//Add game to database (if it doesn't already exist)
 		//Inform user of generated game w/code
 
@@ -95,26 +100,26 @@ func joinGame(data string) []byte {
 	var gameJoin GameJoin
 	json.Unmarshal([]byte(data), &gameJoin)
 
-	if gameJoin.Code == "" {
+	if gameJoin.code == "" {
 		return clientReturn("ERROR", "Game code cannot be blank")
 	} else {
 		if false { //Check if game is in db
-			return clientReturn("OK", "Joining game code: "+gameJoin.Code)
+			return clientReturn("OK", gameJoin.code)
 		} else {
-			return clientReturn("ERROR", "Game code: "+gameJoin.Code+" doesn't exist")
+			return clientReturn("ERROR", "Game code: \""+gameJoin.code+"\" doesn't exist")
 		}
 	}
 }
 
-func clientReturn(returnType, data string) []byte {
-	returnData, err := json.Marshal(&ClientMessage{
-		Type: returnType,
-		Data: data,
+func clientReturn(returnResponse, returnData string) []byte {
+	rd, err := json.Marshal(&ClientMessage{
+		response: returnResponse,
+		data:     returnData,
 	})
 	if err != nil {
 		fmt.Println(err)
 	}
-	return returnData
+	return rd
 }
 
 func generateCode() string {
