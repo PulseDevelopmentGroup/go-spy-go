@@ -1,10 +1,15 @@
-HtmlWebpackPlugin = require('html-webpack-plugin');
-path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const path = require('path');
+const webpack = require('webpack');
 
 const htmlPlugin = new HtmlWebpackPlugin({
   template: './src/index.html',
   filename: 'index.html'
-})
+});
+
+const EnvPlugin = new webpack.DefinePlugin({
+  'process.env.API_URL': JSON.stringify(process.env.API_URL || '192.168.1.254:8080'),
+});
 
 module.exports = {
   devtool: 'source-map',
@@ -34,5 +39,8 @@ module.exports = {
   devServer: {
     host: '0.0.0.0',
   },
-  plugins: [htmlPlugin],
+  plugins: [
+    htmlPlugin,
+    EnvPlugin,
+  ],
 }
