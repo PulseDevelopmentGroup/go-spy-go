@@ -46,7 +46,12 @@ export default class App extends Component {
 
       socket.send(obj);
       socket.onmessage = e => {
-        console.log(e.data);
+        console.log(e);
+      };
+
+      window.onbeforeunload = () => {
+        console.log('firing');
+        socket.close();
       };
     };
   }
