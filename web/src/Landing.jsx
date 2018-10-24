@@ -61,6 +61,7 @@ const CreateControls = props => {
         value={props.userName}
         onChange={props.onChange}
       />
+      <SubmitBtn as="input" type="submit" value="Create Game" />
     </>
   );
 };
@@ -80,6 +81,7 @@ const JoinControls = props => {
         value={props.userName}
         onChange={props.onChange}
       />
+      <SubmitBtn as="input" type="submit" value="Join Game" />
     </>
   );
 };
@@ -100,7 +102,7 @@ export default class Landing extends Component {
 
     this.showCreateFields = this.showCreateFields.bind(this);
     this.showJoinFields = this.showJoinFields.bind(this);
-    this.sendGameRequest = this.sendGameRequest.bind(this);
+    this.sendGameRequest = this.handleSubmit.bind(this);
     this.changeHandler = this.changeHandler.bind(this);
   }
 
@@ -118,9 +120,13 @@ export default class Landing extends Component {
     });
   }
 
-  sendGameRequest() {
-    console.log(this.form.current);
-    debugger;
+  handleSubmit() {
+    if (this.state.showCreate) {
+      this.props.gameFunctions.createGame(
+        this.state.gameInfo.gameId,
+        this.state.gameInfo.userName
+      );
+    }
   }
 
   changeHandler(e) {
@@ -161,7 +167,7 @@ export default class Landing extends Component {
         <ConnectFields
           onSubmit={e => {
             e.preventDefault();
-            this.sendGameRequest();
+            this.handleSubmit();
           }}
           ref={this.form}
         >
@@ -186,9 +192,6 @@ export default class Landing extends Component {
               }
               onChange={this.changeHandler}
             />
-          )}
-          {(this.state.showCreate || this.state.showJoin) && (
-            <SubmitBtn as="input" type="submit" value="Submit" />
           )}
         </ConnectFields>
       </StyledLanding>
