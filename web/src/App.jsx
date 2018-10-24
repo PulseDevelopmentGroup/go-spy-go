@@ -21,6 +21,41 @@ const Container = styled.div`
 `;
 
 export default class App extends Component {
+  constructor() {
+    super();
+
+    this.state = {
+      socket: null,
+    };
+  }
+
+  componentDidMount() {
+    const socket = new WebSocket(`ws://${process.env.API_URL}/api`);
+
+    socket.onopen = e => {
+      this.setState({
+        socket,
+      });
+
+      let message = {
+        type: 'create-game',
+        data: '{"code":"", "username":"user"}',
+      };
+
+      let obj = JSON.stringify(message);
+
+      socket.send(obj);
+      socket.onmessage = e => {
+        console.log(e);
+      };
+
+      window.onbeforeunload = () => {
+        console.log('firing');
+        socket.close();
+      };
+    };
+  }
+
   render() {
     return (
       <Router>

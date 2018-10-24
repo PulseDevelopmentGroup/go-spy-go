@@ -68,7 +68,6 @@ const CreateControls = props => {
 const JoinControls = props => {
   return (
     <>
-      {console.log(props)}
       <StyledTextField
         placeholder="Game ID"
         name="gameId"
@@ -146,8 +145,18 @@ export default class Landing extends Component {
           <a href="http://international.hobbyworld.ru/spyfall">Spyfall</a>
         </Subheader>
         <ButtonGroup>
-          <Button onClick={this.showCreateFields}>Create</Button>
-          <Button onClick={this.showJoinFields}>Join</Button>
+          <Button
+            className={this.state.showCreate ? 'active' : ''}
+            onClick={this.showCreateFields}
+          >
+            Create
+          </Button>
+          <Button
+            className={this.state.showJoin ? 'active' : ''}
+            onClick={this.showJoinFields}
+          >
+            Join
+          </Button>
         </ButtonGroup>
         <ConnectFields
           onSubmit={e => {
