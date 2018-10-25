@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"server/db"
+	"spyfall/db"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"gopkg.in/mgo.v2/bson"
 )
 
 //Websockets Upgrader
@@ -29,30 +28,17 @@ type gamejoin struct {
 	Code, Username string
 }
 
-type player struct {
-	ID       bson.ObjectId `bson:"player_id" json:"player_id"`
-	Username string        `bson:"username" json:"username"`
-	Spy      bool          `bson:"spy" json:"spy"`
-}
+//Configurations
 
-//Struct used to define a game in the DB
+var dbaddr = "127.0.0.1"
+var dbport = "27017"
+var dbname = "spyfall"
+var dbgamecollection = "games"
 
-type gamedb struct {
-	ID       bson.ObjectId `bson:"_id" json:"id"`
-	GameCode string        `bson:"gamecode" json:"gamecode"`
-	Location string        `bson:"location" json:"location"`
-	Players  []player      `bson:"players" json:"players"`
-}
-
-var dbaddr string = "127.0.0.1"
-var dbport string = "27017"
-var dbname string = "spyfall"
-var dbgamecollection string = "games"
-
-var apiport string = "8080"
+var apiport = "8080"
 
 func main() {
-	print("general", "Attempting to connect to database: \" "+dbname+"\" at: "+dbaddr+":"+dbport)
+	print("general", "Attempting to connect to database: \""+dbname+"\" at: "+dbaddr+":"+dbport)
 
 	dbo := db.DBO{
 		Server:         dbaddr + ":" + dbport,
@@ -63,7 +49,7 @@ func main() {
 	err := db.Connect(dbo)
 	if err != nil {
 		fmt.Println(err)
-		print("db", "Unable to connecto to database!")
+		print("db", "Unable to connect to database!")
 	} else {
 		print("db", "Connected to database!")
 	}
@@ -77,10 +63,6 @@ func main() {
 func handler(w http.ResponseWriter, r *http.Request) {
 	http.FileServer(http.Dir("../../../public"))
 }
-
-/*func dbInsert(value, data string) {
-	db.C("games").Insert //Finish this
-}*/
 
 func api(w http.ResponseWriter, r *http.Request) {
 	connection, err := upgrader.Upgrade(w, r, nil)
@@ -122,8 +104,11 @@ func createGame(data string) []byte {
 
 	if gameJoin.Code == "" {
 		code = generateCode()
-		//Add game to database (if it doesn't already exist)
-		//Inform user of generated game w/code
+
+		err := db.NewGame(code, "spy-school")
+		if err != nil {
+			fmt.Println(err)
+		}
 
 		print("api", "Game \""+code+"\" doesn't exist, creating...")
 
@@ -131,8 +116,11 @@ func createGame(data string) []byte {
 		return returnMessage
 	} else {
 		code = gameJoin.Code
-		//Add game to database (if it doesn't already exist)
-		//Inform user of generated game w/code
+
+		err := db.NewGame(code, "spy-school")
+		if err != nil {
+			fmt.Println(err)
+		}
 
 		if false { //Check if game is already in db
 			print("api", "Game \""+code+"\" already exists in the database, error")
@@ -152,13 +140,14 @@ func joinGame(data string) []byte {
 		print("api", "Game code blank, error")
 		return clientReturn("ERROR", "Game code cannot be blank")
 	} else {
-		if false { //Check if game is in db
-			print("api", "Game \""+gameJoin.Code+"\" found in database, joining...")
-			return clientReturn("OK", gameJoin.Code)
-		} else {
+		err := db.AddPlayer(gameJoin.Code, gameJoin.Username)
+
+		if err != nil { //Check if game is in db
 			print("api", "Game \""+gameJoin.Code+"\" not found in database, error")
 			return clientReturn("ERROR", "Game code: \""+gameJoin.Code+"\" doesn't exist")
 		}
+		print("api", "Game \""+gameJoin.Code+"\" found in database, joining...")
+		return clientReturn("OK", gameJoin.Code)
 	}
 }
 
