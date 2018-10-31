@@ -18,27 +18,32 @@ These are just for development. Some reference material for how web socket messa
 
 ```json
 {
-    "trigger" : "create-game",
-    "data" : "{\"code\":\"\", \"username\":\"USERNAME\"}"
+    "kind":"CREATE_GAME",
+    "data": "{\"game-id\":\"\",\"username\":\"USERNAME\"}"
 }
 ```
 
 ### Response from server if OK
 
+(Notice it's the exact same thing as the message from the client)
+
 ```json
 {
-    "response" : "OK",
-    "data" : "GAMECODE"
+    "kind":"CREATE_GAME",
+    "data": "{\"game-id\":\"\",\"username\":\"USERNAME\"}"
 }
 ```
 
 ### Response from server if Error
 
+(Notice it's the exact same thing as the message from the client, just with the generated game-id (if applicable) and the error)
+
 ```json
 {
-    "response" : "ERROR",
-    "data" : "ERROR_MESSAGE"
-}
+    "kind":"CREATE_GAME",
+    "data":"{\"game-id\":\"GAMEID\",\"username\":\"USERNAME\"}",
+    "error":"{\"error\":\"ERRORCODE\",\"description\":\"ERRORDESC\"}"
+    }
 ```
 
 ## Create new game with code
