@@ -6,27 +6,9 @@ import (
 	"math/rand"
 	"net/http"
 	"spyfall/db"
+	"spyfall/websockets"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
-
-//Websockets Upgrader
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
-type clientmessage struct {
-	Trigger, Data string
-}
-
-type gamejoin struct {
-	Code, Username string
-}
 
 //Configurations
 
@@ -40,7 +22,7 @@ var apiport = "8080"
 func main() {
 	print("general", "Attempting to connect to database: \""+dbname+"\" at: "+dbaddr+":"+dbport)
 
-	dbo := db.DBO{
+	dbo := &db.DBO{
 		Server:         dbaddr + ":" + dbport,
 		Database:       dbname,
 		GameCollection: dbgamecollection,
@@ -61,112 +43,131 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	http.FileServer(http.Dir("../../../public"))
+	http.FileServer(http.Dir("../../../public")) //Should probably fix this sometime
 }
 
 func api(w http.ResponseWriter, r *http.Request) {
-	connection, err := upgrader.Upgrade(w, r, nil)
+	connection, err := websockets.Upgrade(w, r)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	print("ws", "Client Connected!")
-
 	for {
-		var clientMessage clientmessage
-		connection.ReadJSON(&clientMessage)
+		var request websockets.Request
+		connection.ReadJSON(&request)
 
-		print("ws", "Trigger: "+clientMessage.Trigger)
+		fmt.Println(request)
 
-		switch clientMessage.Trigger {
-		case "create-game":
-			connection.WriteMessage(1, createGame(clientMessage.Data))
-		case "join-game":
-			connection.WriteMessage(1, joinGame(clientMessage.Data))
-		case "start-game":
+		print("ws", "Recieved: Kind: "+request.Kind+" Data: "+request.Data)
+
+		switch request.Kind {
+		case "CREATE_GAME":
+			websockets.ClientResponse(createGame(request.Data), connection)
+		case "JOIN_GAME":
+			websockets.ClientResponse(joinGame(request.Data), connection)
+		case "START_GAME":
 			//Start game
-		case "stop-game":
+		case "STOP_GAME":
 			//Stop game
-		case "leave-game":
+		case "LEAVE_GAME":
 			//Leave game
 		default:
-			clientReturn("ERROR", "Not a valid trigger")
+			fmt.Errorf("\"%s\" is not a valid kind.", request.Kind)
+			websockets.ClientResponse(&websockets.Response{
+				Kind: request.Kind,
+				Data: request.Data,
+				Err: marshal(&websockets.ErrData{
+					Err:  "NOT_VALID_KIND",
+					Desc: "\"" + request.Kind + "\" is not a valid kind.",
+				}),
+			}, connection)
 		}
-
 	}
 }
 
-func createGame(data string) []byte {
-	var gameJoin gamejoin
+func createGame(data string) *websockets.Response {
 	var code string
-	json.Unmarshal([]byte(data), &gameJoin)
+	var gameData websockets.GameData
+	json.Unmarshal([]byte(data), &gameData)
 
-	if gameJoin.Code == "" {
+	if gameData.GameId == "" {
 		code = generateCode()
-
-		err := db.NewGame(code, "spy-school")
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		print("api", "Game \""+code+"\" doesn't exist, creating...")
-
-		returnMessage := clientReturn("OK", code)
-		return returnMessage
 	} else {
-		code = gameJoin.Code
-
-		err := db.NewGame(code, "spy-school")
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		if false { //Check if game is already in db
-			print("api", "Game \""+code+"\" already exists in the database, error")
-			return clientReturn("ERROR", "Game code: "+code+" already exists")
-		} else {
-			print("api", "Game \""+code+"\" doesn't exist, creating...")
-			return clientReturn("OK", code)
-		}
+		code = gameData.GameId
 	}
-}
 
-func joinGame(data string) []byte {
-	var gameJoin gamejoin
-	json.Unmarshal([]byte(data), &gameJoin)
-
-	if gameJoin.Code == "" {
-		print("api", "Game code blank, error")
-		return clientReturn("ERROR", "Game code cannot be blank")
-	} else {
-		err := db.AddPlayer(gameJoin.Code, gameJoin.Username)
-
-		if err != nil { //Check if game is in db
-			print("api", "Game \""+gameJoin.Code+"\" not found in database, error")
-			return clientReturn("ERROR", "Game code: \""+gameJoin.Code+"\" doesn't exist")
-		}
-		print("api", "Game \""+gameJoin.Code+"\" found in database, joining...")
-		return clientReturn("OK", gameJoin.Code)
-	}
-}
-
-func clientReturn(returnResponse, returnData string) []byte {
-	rd, err := json.Marshal(&clientmessage{
-		Trigger: returnResponse,
-		Data:    returnData,
-	})
+	err := db.NewGame(code, "spy-school") //This needs to be randomly generated
 	if err != nil {
 		fmt.Println(err)
+		print("api", "Game \""+code+"\" already exists in database.")
+		return &websockets.Response{
+			Kind: "CREATE_GAME",
+			Data: marshal(&websockets.GameData{
+				GameId:   code,
+				Username: gameData.Username,
+			}),
+			Err: marshal(&websockets.ErrData{
+				Err:  "GAME_ALREADY_EXISTS",
+				Desc: "Game: \"" + code + "\" already exists in database.",
+			}),
+		}
+	} else {
+		print("api", "Game \""+code+"\" doesn't exist, creating...")
+		joinGame(marshal(&websockets.GameData{
+			GameId:   code,
+			Username: gameData.Username,
+		}))
+		return &websockets.Response{
+			Kind: "CREATE_GAME",
+			Data: marshal(&websockets.GameData{
+				GameId:   code,
+				Username: gameData.Username,
+			}),
+		}
 	}
-	print("ws", "Returning to client: "+string(rd))
-	return rd
+}
+
+func joinGame(data string) *websockets.Response {
+	var gameData websockets.GameData
+	json.Unmarshal([]byte(data), &gameData)
+
+	if gameData.GameId == "" {
+		print("api", "Game code blank, error")
+		return &websockets.Response{
+			Kind: "JOIN_GAME",
+			Data: data,
+			Err: marshal(&websockets.ErrData{
+				Err:  "NO_GAME_CODE",
+				Desc: "Good luck joining a game with no code!",
+			}),
+		}
+	}
+
+	err := db.AddPlayer(gameData.GameId, gameData.Username)
+	if err != nil {
+		fmt.Println(err)
+		print("api", "Game \""+gameData.GameId+"\" not found in database, error")
+		return &websockets.Response{
+			Kind: "JOIN_GAME",
+			Data: data,
+			Err: marshal(&websockets.ErrData{
+				Err:  "NO_GAME",
+				Desc: "The game: \"" + gameData.GameId + "\" does not exist.",
+			}),
+		}
+
+	}
+	print("api", "Game \""+gameData.GameId+"\" found in database, joining...")
+	return &websockets.Response{
+		Kind: "JOIN_GAME",
+		Data: data,
+	}
 }
 
 func generateCode() string {
 	var letter = []rune("abcdefghijklmnopqrstuvwxyz")
 	rand.Seed(time.Now().UnixNano())
-
 	b := make([]rune, 6)
 	for i := range b {
 		b[i] = letter[rand.Intn(len(letter))]
@@ -187,6 +188,13 @@ func print(loglevel, message string) {
 	case "ws":
 		prefix = "[Websockets] "
 	}
-
 	fmt.Println(prefix + message)
+}
+
+func marshal(input interface{}) string {
+	r, err := json.Marshal(input)
+	if err != nil {
+		fmt.Println(err.Error)
+	}
+	return string(r)
 }
