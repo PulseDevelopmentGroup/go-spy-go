@@ -27,9 +27,9 @@ export default class App extends Component {
   constructor() {
     super();
 
-    this.state = {
-      socket: null,
-    };
+    this.state = {};
+
+    this.socket = null;
 
     this.createGame = this.createGame.bind(this);
 
@@ -42,9 +42,7 @@ export default class App extends Component {
     const socket = new WebSocket(`ws://${process.env.API_URL}/api`);
 
     socket.onopen = e => {
-      this.setState({
-        socket,
-      });
+      this.socket = socket;
 
       let message = {
         type: 'create-game',
@@ -77,7 +75,7 @@ export default class App extends Component {
     };
 
     const payload = packMessage('create-game', JSON.stringify(gameObj));
-    this.state.socket.send(payload);
+    this.socket.send(payload);
   }
 
   render() {
