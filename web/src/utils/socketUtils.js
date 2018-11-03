@@ -1,11 +1,11 @@
 /**
  *  Create a payload object for transmission over socket
- * @param {string} trigger - The type of message
+ * @param {string} kind - The type of message
  * @param {string} data - The payload of the message
  */
-function packMessage(trigger, data) {
+function packMessage(kind, data) {
   return JSON.stringify({
-    trigger,
+    kind,
     data
   });
 }

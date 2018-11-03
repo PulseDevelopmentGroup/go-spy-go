@@ -8,7 +8,7 @@ class MessageBroker {
     debugger;
     const parsedMessage = JSON.parse(e.data);
     return {
-      type: parsedMessage.Trigger,
+      type: parsedMessage.Kind,
       data:parsedMessage.Data
     }
   }

@@ -74,11 +74,12 @@ export default class App extends Component {
 
   createGame(id, username) {
     const gameObj = {
-      code: '',
+      code: id || '',
       username: username,
     };
 
-    const payload = packMessage('create-game', JSON.stringify(gameObj));
+    const payload = packMessage('CREATE_GAME', JSON.stringify(gameObj));
+    console.log(payload);
     this.socket.send(payload);
   }
 
