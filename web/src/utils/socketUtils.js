@@ -4,10 +4,10 @@
  * @param {string} data - The payload of the message
  */
 function packMessage(trigger, data) {
-  return {
+  return JSON.stringify({
     trigger,
     data
-  }
+  });
 }
 
 export {
