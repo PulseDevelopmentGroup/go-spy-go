@@ -51,6 +51,10 @@ export default class App extends Component {
 
       let obj = JSON.stringify(message);
 
+      socket.onerror = err => {
+        console.log(`Following error occured with websocket: ${err}`);
+      };
+
       socket.onmessage = e => {
         MessageBroker.handleMessage(e);
       };
