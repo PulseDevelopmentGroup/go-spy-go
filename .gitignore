@@ -2,3 +2,5 @@
 /public
 /db
 *.a
+
+web/package-lock\.json

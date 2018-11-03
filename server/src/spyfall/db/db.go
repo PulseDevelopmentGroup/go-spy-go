@@ -28,7 +28,7 @@ type gameTemplate struct {
 
 var collection *mgo.Collection
 
-func Connect(dbo DBO) error {
+func Connect(dbo *DBO) error {
 	session, err := mgo.Dial(dbo.Server)
 	if err != nil {
 		return err
@@ -48,14 +48,16 @@ func AddPlayer(gamecode, username string) error {
 	if gameCount == 0 {
 		return fmt.Errorf("No game exists with gamecode: %s", gamecode)
 	} else {
-		usernameCount, err := collection.Find(bson.M{"player": bson.M{"username": username}}).Limit(1).Count() //Probably need to get more specific, filtering by gamecode first
+		//Neither of the following work so...
+		/*usernameCount, err := collection.Find(bson.M{"gamecode": gamecode, "players": bson.M{"username": username}}).Limit(1).Count() //Probably need to get more specific, filtering by gamecode first
+		usernameCount, err := collection.Find(bson.M{"gamecode": gamecode}).Limit(1).Select(bson.M{"players": bson.M{"$elemMatch": bson.M{"username": username}}}).Count()
 		if err != nil {
 			return err
-		}
-		if usernameCount > 0 {
-			return fmt.Errorf("A user with the username: \"%s\" already exists.", username)
+		}*/
+		if /*usernameCount */ 0 > 1 {
+			return err
 		} else {
-			return collection.Update(bson.M{"gamecode": gamecode}, bson.M{"$push": bson.M{"player": &player{ //This works, so that's neat
+			return collection.Update(bson.M{"gamecode": gamecode}, bson.M{"$push": bson.M{"players": &player{ //This works, so that's neat
 				PlayerID: bson.NewObjectId(),
 				Username: username,
 				Spy:      false,
