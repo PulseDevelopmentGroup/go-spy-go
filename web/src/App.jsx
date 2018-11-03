@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { packMessage } from './utils/socketUtils';
+import MessageBroker from './utils/messageBroker';
 
 import GlobalStyles from './components/Global';
 import Landing from './Landing';
@@ -52,10 +53,10 @@ export default class App extends Component {
 
       let obj = JSON.stringify(message);
 
-      socket.send(obj);
       socket.onmessage = e => {
-        console.log(e);
+        MessageBroker.handleMessage(e);
       };
+      socket.send(obj);
 
       window.onbeforeunload = () => {
         console.log('firing');
