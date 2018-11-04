@@ -1,0 +1,14 @@
+{
+    "database": {
+        "host": "127.0.0.1",
+        "port": "27017",
+        "name": "spyfall",
+        "collection": "games"
+    },
+    "api": {
+        "port": "8080"
+    },
+    "locations": [
+        "locations.json"
+    ]
+}
