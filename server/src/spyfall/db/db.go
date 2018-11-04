@@ -28,7 +28,7 @@ type Game struct {
 
 var collection *mgo.Collection
 
-func Connect(dbo DBO) error {
+func Connect(dbo *DBO) error {
 	session, err := mgo.Dial(dbo.Server)
 	if err != nil {
 		return err
