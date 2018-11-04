@@ -74,7 +74,7 @@ export default class App extends Component {
 
   createGame(id, username) {
     const gameObj = {
-      code: id || '',
+      gameId: id || '',
       username: username,
     };
 
