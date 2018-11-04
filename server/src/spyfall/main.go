@@ -20,7 +20,7 @@ var dbgamecollection = "games"
 var apiport = "8080"
 
 func main() {
-	print("general", "Attempting to connect to database: \""+dbname+"\" at: "+dbaddr+":"+dbport)
+	print("db", "Attempting to connect to database: \""+dbname+"\" at: "+dbaddr+":"+dbport)
 
 	dbo := &db.DBO{
 		Server:         dbaddr + ":" + dbport,
@@ -67,13 +67,12 @@ func api(w http.ResponseWriter, r *http.Request) {
 		case "JOIN_GAME":
 			websockets.ClientResponse(joinGame(request.Data), connection)
 		case "START_GAME":
-			//Start game
+			fmt.Println(db.GetLocation("wyquut"))
 		case "STOP_GAME":
-			//Stop game
+			fmt.Println(db.SetLocation("wyquut", "new-location"))
 		case "LEAVE_GAME":
 			//Leave game
 		default:
-			fmt.Errorf("\"%s\" is not a valid kind.", request.Kind)
 			websockets.ClientResponse(&websockets.Response{
 				Kind: request.Kind,
 				Data: request.Data,
@@ -98,19 +97,35 @@ func createGame(data string) *websockets.Response {
 	}
 
 	err := db.NewGame(code, "spy-school") //This needs to be randomly generated
+
 	if err != nil {
 		fmt.Println(err)
-		print("api", "Game \""+code+"\" already exists in database.")
-		return &websockets.Response{
-			Kind: "CREATE_GAME",
-			Data: marshal(&websockets.GameData{
-				GameId:   code,
-				Username: gameData.Username,
-			}),
-			Err: marshal(&websockets.ErrData{
-				Err:  "GAME_ALREADY_EXISTS",
-				Desc: "Game: \"" + code + "\" already exists in database.",
-			}),
+		if err == fmt.Errorf("GAME_ALREADY_EXISTS") {
+			print("api", "Game \""+code+"\" already exists in database.")
+			return &websockets.Response{
+				Kind: "CREATE_GAME",
+				Data: marshal(&websockets.GameData{
+					GameId:   code,
+					Username: gameData.Username,
+				}),
+				Err: marshal(&websockets.ErrData{
+					Err:  "GAME_ALREADY_EXISTS",
+					Desc: "Game: \"" + code + "\" already exists in database.",
+				}),
+			}
+		} else {
+			print("api", "There was a big problem")
+			return &websockets.Response{
+				Kind: "CREATE_GAME",
+				Data: marshal(&websockets.GameData{
+					GameId:   code,
+					Username: gameData.Username,
+				}),
+				Err: marshal(&websockets.ErrData{
+					Err:  "UNKNOWN_ERROR",
+					Desc: "See the server log",
+				}),
+			}
 		}
 	} else {
 		print("api", "Game \""+code+"\" doesn't exist, creating...")
@@ -147,18 +162,41 @@ func joinGame(data string) *websockets.Response {
 	err := db.AddPlayer(gameData.GameId, gameData.Username)
 	if err != nil {
 		fmt.Println(err)
-		print("api", "Game \""+gameData.GameId+"\" not found in database, error")
+		print("api", "Error: "+err.Error())
+
+		if err.Error() == "NO_GAME_EXISTS" {
+			return &websockets.Response{
+				Kind: "JOIN_GAME",
+				Data: data,
+				Err: marshal(&websockets.ErrData{
+					Err:  "NO_GAME",
+					Desc: "The game: \"" + gameData.GameId + "\" does not exist.",
+				}),
+			}
+		}
+		if err.Error() == "USER_ALREADY_EXISTS" {
+			return &websockets.Response{
+				Kind: "JOIN_GAME",
+				Data: data,
+				Err: marshal(&websockets.ErrData{
+					Err:  "DUP_USER",
+					Desc: "A user with the username: \"" + gameData.Username + "\" already exists in game: \"" + gameData.GameId + "\".",
+				}),
+			}
+		}
+
 		return &websockets.Response{
 			Kind: "JOIN_GAME",
 			Data: data,
 			Err: marshal(&websockets.ErrData{
-				Err:  "NO_GAME",
-				Desc: "The game: \"" + gameData.GameId + "\" does not exist.",
+				Err:  "ERROR",
+				Desc: "This shouldn't happen, see the server log for details.",
 			}),
 		}
 
 	}
 	print("api", "Game \""+gameData.GameId+"\" found in database, joining...")
+
 	return &websockets.Response{
 		Kind: "JOIN_GAME",
 		Data: data,
@@ -180,11 +218,11 @@ func print(loglevel, message string) {
 	var prefix string
 	switch loglevel {
 	case "api":
-		prefix = "[API] "
+		prefix = "[   API    ] "
 	case "general":
-		prefix = "[General] "
+		prefix = "[ General  ] "
 	case "db":
-		prefix = "[Database] "
+		prefix = "[ Database ] "
 	case "ws":
 		prefix = "[Websockets] "
 	}
@@ -194,7 +232,7 @@ func print(loglevel, message string) {
 func marshal(input interface{}) string {
 	r, err := json.Marshal(input)
 	if err != nil {
-		fmt.Println(err.Error)
+		fmt.Println(err.Error())
 	}
 	return string(r)
 }
