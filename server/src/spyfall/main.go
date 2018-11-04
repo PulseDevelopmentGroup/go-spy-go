@@ -5,30 +5,50 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"spyfall/db"
 	"spyfall/websockets"
 	"time"
 )
 
-//Configurations
+var configFile = "config.json"
 
-var dbaddr = "127.0.0.1"
-var dbport = "27017"
-var dbname = "spyfall"
-var dbgamecollection = "games"
+type Config struct {
+	Databse struct {
+		Host       string `json:"host"`
+		Port       string `json:"port"`
+		Name       string `json:"name"`
+		Collection string `json:"collection"`
+	} `json:"database"`
+	Api struct {
+		Port string `json:"port"`
+	} `json:"api"`
+	Locations []string `json:"locations"`
+}
 
-var apiport = "8080"
+type Location struct {
+	Name  string   `json:"name"`
+	Roles []string `json:"roles"`
+	Spies int      `json:"spies"`
+}
+
+type Locations struct {
+	Locations []Location `json:"locations"`
+}
 
 func main() {
-	print("db", "Attempting to connect to database: \""+dbname+"\" at: "+dbaddr+":"+dbport)
-
-	dbo := &db.DBO{
-		Server:         dbaddr + ":" + dbport,
-		Database:       dbname,
-		GameCollection: dbgamecollection,
+	config, err := readConfig(configFile)
+	if err != nil {
+		fmt.Println(err)
 	}
 
-	err := db.Connect(dbo)
+	print("db", "Attempting to connect to database: \""+config.Databse.Name+"\" at: "+config.Databse.Host+":"+config.Databse.Port)
+
+	db.Connect(&db.DBO{
+		Server:         config.Databse.Host + ":" + config.Databse.Port,
+		Database:       config.Databse.Name,
+		GameCollection: config.Databse.Collection,
+	})
 	if err != nil {
 		fmt.Println(err)
 		print("db", "Unable to connect to database!")
@@ -36,14 +56,14 @@ func main() {
 		print("db", "Connected to database!")
 	}
 
-	print("general", "Starting web server on port: "+apiport)
+	print("general", "Starting web server on port: "+config.Api.Port)
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/api", api)
-	http.ListenAndServe(":"+apiport, nil)
+	http.ListenAndServe(":"+config.Api.Port, nil)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	http.FileServer(http.Dir("../../../public")) //Should probably fix this sometime
+	http.FileServer(http.Dir("public/")) //Should probably fix this sometime
 }
 
 func api(w http.ResponseWriter, r *http.Request) {
@@ -57,8 +77,6 @@ func api(w http.ResponseWriter, r *http.Request) {
 		var request websockets.Request
 		connection.ReadJSON(&request)
 
-		fmt.Println(request)
-
 		print("ws", "Recieved: Kind: "+request.Kind+" Data: "+request.Data)
 
 		switch request.Kind {
@@ -67,9 +85,10 @@ func api(w http.ResponseWriter, r *http.Request) {
 		case "JOIN_GAME":
 			websockets.ClientResponse(joinGame(request.Data), connection)
 		case "START_GAME":
-			fmt.Println(db.GetLocation("wyquut"))
+			//websockets.ClientResponse(startGame(request.Data), connection)
+			//Start game
 		case "STOP_GAME":
-			fmt.Println(db.SetLocation("wyquut", "new-location"))
+			//Stop game
 		case "LEAVE_GAME":
 			//Leave game
 		default:
@@ -201,6 +220,35 @@ func joinGame(data string) *websockets.Response {
 		Kind: "JOIN_GAME",
 		Data: data,
 	}
+}
+
+/*func startGame(data string) *websockets.Response {
+
+}*/
+
+/*func getLocations(file string) (Locations, error) {
+	var locations Locations
+	osFile, err := os.Open(file)
+	defer osFile.Close()
+	if err != nil {
+		return locations, err
+	}
+
+	json.NewDecoder(osFile).Decode(&locations)
+	return locations, err
+}*/
+
+func readConfig(file string) (Config, error) {
+	var config Config
+	osFile, err := os.Open(file)
+	defer osFile.Close()
+	if err != nil {
+		return config, err
+	}
+
+	json.NewDecoder(osFile).Decode(&config)
+	fmt.Println(config)
+	return config, err
 }
 
 func generateCode() string {
