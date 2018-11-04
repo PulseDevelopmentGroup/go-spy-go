@@ -5,11 +5,14 @@ class MessageBroker {
   }
   
   parseMessage(e) {
-    debugger;
     const parsedMessage = JSON.parse(e.data);
-    return {
-      type: parsedMessage.Kind,
-      data:parsedMessage.Data
+    try {
+      return {
+        type: parsedMessage.kind,
+        data: JSON.parse(parsedMessage.data)
+      }
+    } catch (err) {
+      console.log('Error occured while parsing socket message:', err);
     }
   }
   
