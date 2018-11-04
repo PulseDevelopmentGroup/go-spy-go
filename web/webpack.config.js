@@ -8,7 +8,7 @@ const htmlPlugin = new HtmlWebpackPlugin({
 });
 
 const EnvPlugin = new webpack.DefinePlugin({
-  'process.env.API_URL': JSON.stringify(process.env.API_URL || '192.168.1.254:8080'),
+  'process.env.API_URL': JSON.stringify(process.env.API_URL || '0.0.0.0:8080'),
 });
 
 module.exports = {
