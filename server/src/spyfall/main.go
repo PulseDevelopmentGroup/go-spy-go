@@ -80,7 +80,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 		json.Unmarshal([]byte(request.Data), &data)
 		websockets.Clients[data.Username]
-    
+
 		print("ws", "Recieved: Kind: "+request.Kind+" Data: "+request.Data)
 
 		switch request.Kind {
@@ -268,19 +268,6 @@ func marshal(input interface{}) string {
 		fmt.Println(err.Error())
 	}
 	return string(r)
-}
-
-func readConfig(file string) (Config, error) {
-	var config Config
-	osFile, err := os.Open(file)
-	defer osFile.Close()
-	if err != nil {
-		return config, err
-	}
-
-	json.NewDecoder(osFile).Decode(&config)
-	fmt.Println(config)
-	return config, err
 }
 
 func print(loglevel, message string) {
