@@ -16,6 +16,8 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+var Clients = make(map[string]*websocket.Conn)
+
 type Request struct {
 	Kind string `json:"kind"`
 	Data string `json:"data"`
@@ -46,7 +48,7 @@ func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	return connection, nil
 }
 
-func ClientResponse(response *Response, socket *websocket.Conn) (error, error) {
+func Send(response *Response, socket *websocket.Conn) (error, error) {
 	r, marshalErr := json.Marshal(response)
 	writeErr := socket.WriteMessage(1, r)
 	return marshalErr, writeErr
