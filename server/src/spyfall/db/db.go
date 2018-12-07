@@ -40,26 +40,28 @@ func Connect(dbo *DBO) error {
 	return nil
 }
 
-func AddPlayer(gamecode, username string) error {
+func AddPlayer(gamecode, username string) (string, error) {
 	err := checkGame(gamecode)
 	if err != nil {
 		if err == fmt.Errorf("NO_GAME_EXISTS") {
-			return fmt.Errorf("NO_GAME_EXISTS")
+			return "", fmt.Errorf("NO_GAME_EXISTS")
 		}
-		return err
+		return "", err
 	}
 	usernameCount, err := collection.Find(bson.M{"gamecode": gamecode, "players": bson.M{"$elemMatch": bson.M{"username": username}}}).Limit(1).Count()
 	if err != nil {
-		return err
+		return "", err
 	}
 	if usernameCount > 0 {
-		return fmt.Errorf("USER_ALREADY_EXISTS")
+		return "", fmt.Errorf("USER_ALREADY_EXISTS")
 	} else {
-		return collection.Update(bson.M{"gamecode": gamecode}, bson.M{"$push": bson.M{"players": &Player{
-			PlayerID: bson.NewObjectId(),
+		pid := bson.NewObjectId()
+		err := collection.Update(bson.M{"gamecode": gamecode}, bson.M{"$push": bson.M{"players": &Player{
+			PlayerID: pid,
 			Username: username,
 			Spy:      false,
 		}}})
+		return pid.Hex(), err
 	}
 }
 

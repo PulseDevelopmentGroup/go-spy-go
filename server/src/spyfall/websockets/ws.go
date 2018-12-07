@@ -39,6 +39,8 @@ type ErrData struct {
 	Desc string `json:"description,omitempty"`
 }
 
+type Connection *websocket.Conn
+
 //The following two functions could _definitely_ be in main at their base functionality, but they are here in case we want to do any additional validation in the future.
 func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	connection, err := upgrader.Upgrade(w, r, nil)
