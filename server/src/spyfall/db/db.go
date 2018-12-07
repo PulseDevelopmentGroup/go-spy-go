@@ -16,6 +16,7 @@ type DBO struct {
 type Player struct {
 	PlayerID bson.ObjectId `bson:"playerid" json:"playerid"`
 	Username string        `bson:"username" json:"username"`
+	Role     string        `bson:"role" json:"role"`
 	Spy      bool          `bson:"spy" json:"spy"`
 }
 
@@ -28,6 +29,7 @@ type Game struct {
 
 var collection *mgo.Collection
 
+//Connect connects to the database with the supplied database object
 func Connect(dbo *DBO) error {
 	session, err := mgo.Dial(dbo.Server)
 	if err != nil {
@@ -40,6 +42,8 @@ func Connect(dbo *DBO) error {
 	return nil
 }
 
+//AddPlayer adds a new player to the database
+//Returns the player id and an error
 func AddPlayer(gamecode, username string) (string, error) {
 	err := checkGame(gamecode)
 	if err != nil {
@@ -54,17 +58,18 @@ func AddPlayer(gamecode, username string) (string, error) {
 	}
 	if usernameCount > 0 {
 		return "", fmt.Errorf("USER_ALREADY_EXISTS")
-	} else {
-		pid := bson.NewObjectId()
-		err := collection.Update(bson.M{"gamecode": gamecode}, bson.M{"$push": bson.M{"players": &Player{
-			PlayerID: pid,
-			Username: username,
-			Spy:      false,
-		}}})
-		return pid.Hex(), err
 	}
+	pid := bson.NewObjectId()
+	udErr := collection.Update(bson.M{"gamecode": gamecode}, bson.M{"$push": bson.M{"players": &Player{
+		PlayerID: pid,
+		Username: username,
+		Role:     "null",
+		Spy:      false,
+	}}})
+	return pid.Hex(), udErr
 }
 
+//GetPid returns the id of the player in a specific game based on their username
 func GetPid(gamecode, username string) (string, error) {
 	players, err := GetPlayers(gamecode)
 	for i := range players {
@@ -76,17 +81,61 @@ func GetPid(gamecode, username string) (string, error) {
 	return "", fmt.Errorf("NO_PLAYER_EXISTS")
 }
 
+//GetPlayers returns an array of players in a game
 func GetPlayers(gamecode string) ([]Player, error) {
 	game, gdErr := GetGameData(gamecode)
 	if gdErr != nil {
-		if gdErr == fmt.Errorf("NO_GAME_EXISTS") {
-			return nil, fmt.Errorf("NO_GAME_EXISTS")
-		}
 		return nil, gdErr
 	}
 	return game.Players, nil
 }
 
+//GetPlayer returns a player struct with the data of a player matching a username
+//TODO: TEST THIS
+func GetPlayer(gamecode, username string) (Player, error) {
+	players, err := GetPlayers(gamecode)
+	if err != nil {
+		return Player{}, err
+	}
+	for i := range players {
+		if players[i].Username == username {
+			return players[i], nil
+		}
+	}
+	return Player{}, fmt.Errorf("NO_PLAYER_EXISTS")
+}
+
+//SetPlayer updates a player's record with elements from a new supplied player
+//TODO: TEST THIS
+func SetPlayer(gamecode string, player Player) error {
+	err := checkGame(gamecode)
+	if err != nil {
+		if err == fmt.Errorf("NO_GAME_EXISTS") {
+			return fmt.Errorf("NO_GAME_EXISTS")
+		}
+		return err
+	}
+
+	updatePlayer, gpErr := GetPlayer(gamecode, player.Username)
+	if gpErr != nil {
+		return gpErr
+	}
+
+	if updatePlayer.Username != player.Username {
+		updatePlayer.Username = player.Username
+	}
+	if updatePlayer.Role != player.Role {
+		updatePlayer.Role = player.Role
+	}
+	if updatePlayer.Spy != player.Spy {
+		updatePlayer.Spy = player.Spy
+	}
+
+	collection.Update(bson.M{"gamecode": gamecode, "players.username": player.Username}, bson.M{"$set": bson.M{"players": updatePlayer}})
+	return nil
+}
+
+//SetLocation sets location of a specific game
 func SetLocation(gamecode, location string) error {
 	err := checkGame(gamecode)
 	if err != nil {
@@ -100,6 +149,7 @@ func SetLocation(gamecode, location string) error {
 	return nil
 }
 
+//GetLocation returns a string of the location of a specific game
 func GetLocation(gamecode string) (string, error) {
 	game, gdErr := GetGameData(gamecode)
 	if gdErr != nil {
@@ -112,6 +162,8 @@ func GetLocation(gamecode string) (string, error) {
 	return game.Location, nil
 }
 
+//SetSpies sets the spies in a game with an array of usernames
+//Depreciated in favor of the SetPlayer function
 func SetSpies(gamecode string, spies []string) error {
 	err := checkGame(gamecode)
 	if err != nil {
@@ -127,6 +179,8 @@ func SetSpies(gamecode string, spies []string) error {
 	return nil
 }
 
+//GetSpies returns an array of strings with the usernames of the game's spies
+//Depreciated in favor of the GetPlayers function
 func GetSpies(gamecode string) ([]string, error) {
 	game, gdErr := GetGameData(gamecode)
 	spies := []string{}
@@ -145,16 +199,21 @@ func GetSpies(gamecode string) ([]string, error) {
 	return spies, nil
 }
 
-func NewGame(gamecode, location string) error {
-	return insertEntry(&Game{
+//NewGame creates a new game in the DB with the provided gamecode
+//Returns error if game already exists or cannot be created
+//NOTE: LOCATION NOT SET HERE
+func NewGame(gamecode string) error {
+	return insertGame(&Game{
 		ID:       bson.NewObjectId(),
 		GameCode: gamecode,
-		Location: location,
+		Location: "null",
 		Players:  nil,
 	})
 }
 
-//TODO Test this more thouroughly    < Also, definitely spelled that wrong
+//GetGameData returns the Game struct that matches the provided gamecode
+//Returns error if game does not exist
+//TODO Test this more
 func GetGameData(gamecode string) (Game, error) {
 	checkGameErr := checkGame(gamecode)
 	result := Game{}
@@ -168,6 +227,7 @@ func GetGameData(gamecode string) (Game, error) {
 	return result, nil
 }
 
+//Returns an error if game doesn't exist. Returns nothing if a game exists
 func checkGame(gamecode string) error {
 	gameCount, err := collection.Find(bson.M{"gamecode": gamecode}).Limit(1).Count()
 	if err != nil {
@@ -176,11 +236,11 @@ func checkGame(gamecode string) error {
 	if gameCount == 0 {
 		return fmt.Errorf("NO_GAME_EXISTS")
 	}
-
 	return nil
 }
 
-func insertEntry(entry *Game) error {
+//Adds a game to the DB
+func insertGame(entry *Game) error {
 	count, err := collection.Find(bson.M{"gamecode": entry.GameCode}).Limit(1).Count()
 	if err != nil {
 		return err
@@ -188,6 +248,5 @@ func insertEntry(entry *Game) error {
 	if count > 0 {
 		return fmt.Errorf("GAME_ALREADY_EXISTS")
 	}
-
 	return collection.Insert(entry)
 }
