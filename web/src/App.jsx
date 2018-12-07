@@ -2,6 +2,9 @@ import React, { Component } from 'react';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import styled from 'styled-components';
 
+import { packMessage } from './utils/socketUtils';
+import MessageBroker from './utils/messageBroker';
+
 import GlobalStyles from './components/Global';
 import Landing from './Landing';
 
@@ -24,8 +27,14 @@ export default class App extends Component {
   constructor() {
     super();
 
-    this.state = {
-      socket: null,
+    this.state = {};
+
+    this.socket = null;
+
+    this.createGame = this.createGame.bind(this);
+
+    this.gameFunctions = {
+      createGame: this.createGame,
     };
   }
 
@@ -33,9 +42,7 @@ export default class App extends Component {
     const socket = new WebSocket(`ws://${process.env.API_URL}/api`);
 
     socket.onopen = e => {
-      this.setState({
-        socket,
-      });
+      this.socket = socket;
 
       let message = {
         type: 'create-game',
@@ -44,10 +51,14 @@ export default class App extends Component {
 
       let obj = JSON.stringify(message);
 
-      socket.send(obj);
-      socket.onmessage = e => {
-        console.log(e);
+      socket.onerror = err => {
+        console.log(`Following error occured with websocket: ${err}`);
       };
+
+      socket.onmessage = e => {
+        MessageBroker.handleMessage(e);
+      };
+      socket.send(obj);
 
       window.onbeforeunload = () => {
         console.log('firing');
@@ -56,12 +67,34 @@ export default class App extends Component {
     };
   }
 
+  onSocketMessage(message) {
+    console.log('Message recieved');
+    console.log(message);
+  }
+
+  createGame(id, username) {
+    const gameObj = {
+      gameId: id || '',
+      username: username,
+    };
+
+    const payload = packMessage('CREATE_GAME', JSON.stringify(gameObj));
+    console.log(payload);
+    this.socket.send(payload);
+  }
+
   render() {
     return (
       <Router>
         <Container>
           <GlobalStyles />
-          <Route exact path="/" render={props => <Landing {...props} />} />
+          <Route
+            exact
+            path="/"
+            render={props => (
+              <Landing {...props} gameFunctions={this.gameFunctions} />
+            )}
+          />
         </Container>
       </Router>
     );

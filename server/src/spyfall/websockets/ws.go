@@ -30,7 +30,7 @@ type Response struct {
 }
 
 type GameData struct {
-	GameId   string `json:"game-id"`
+	GameId   string `json:"gameId"`
 	Username string `json:"username"`
 }
 

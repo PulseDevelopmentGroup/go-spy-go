@@ -26,6 +26,16 @@ type Config struct {
 	Locations []string `json:"locations"`
 }
 
+type Location struct {
+	Name  string   `json:"name"`
+	Roles []string `json:"roles"`
+	Spies int      `json:"spies"`
+}
+
+type Locations struct {
+	Locations []Location `json:"locations"`
+}
+
 func main() {
 	config, err := readConfig(configFile)
 	if err != nil {
@@ -70,7 +80,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 		json.Unmarshal([]byte(request.Data), &data)
 		websockets.Clients[data.Username]
-
+    
 		print("ws", "Recieved: Kind: "+request.Kind+" Data: "+request.Data)
 
 		switch request.Kind {
@@ -79,6 +89,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		case "JOIN_GAME":
 			websockets.Send(joinGame(data, connection), connection)
 		case "START_GAME":
+			//websockets.ClientResponse(startGame(request.Data), connection)
 			//Start game
 		case "STOP_GAME":
 			//Stop game
@@ -124,18 +135,19 @@ func createGame(gameData websockets.GameData) *websockets.Response {
 					Desc: "Game: \"" + code + "\" already exists in database.",
 				}),
 			}
-		}
-		print("api", "There was a big problem")
-		return &websockets.Response{
-			Kind: "CREATE_GAME",
-			Data: marshal(&websockets.GameData{
-				GameId:   code,
-				Username: gameData.Username,
-			}),
-			Err: marshal(&websockets.ErrData{
-				Err:  "UNKNOWN_ERROR",
-				Desc: "See the server log",
-			}),
+		} else {
+			print("api", "There was a big problem")
+			return &websockets.Response{
+				Kind: "CREATE_GAME",
+				Data: marshal(&websockets.GameData{
+					GameId:   code,
+					Username: gameData.Username,
+				}),
+				Err: marshal(&websockets.ErrData{
+					Err:  "UNKNOWN_ERROR",
+					Desc: "See the server log",
+				}),
+			}
 		}
 	}
 	print("api", "Game \""+code+"\" doesn't exist, creating...")
@@ -208,6 +220,35 @@ func joinGame(gameData websockets.GameData) *websockets.Response {
 		Kind: "JOIN_GAME",
 		Data: data,
 	}
+}
+
+/*func startGame(data string) *websockets.Response {
+
+}*/
+
+/*func getLocations(file string) (Locations, error) {
+	var locations Locations
+	osFile, err := os.Open(file)
+	defer osFile.Close()
+	if err != nil {
+		return locations, err
+	}
+
+	json.NewDecoder(osFile).Decode(&locations)
+	return locations, err
+}*/
+
+func readConfig(file string) (Config, error) {
+	var config Config
+	osFile, err := os.Open(file)
+	defer osFile.Close()
+	if err != nil {
+		return config, err
+	}
+
+	json.NewDecoder(osFile).Decode(&config)
+	fmt.Println(config)
+	return config, err
 }
 
 func generateCode() string {

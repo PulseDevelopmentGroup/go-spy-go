@@ -1,0 +1,377 @@
+{
+    "locations": [
+        {
+            "name": "name",
+            "roles": [
+                "person1",
+                "person2"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "airplane",
+            "roles": [
+                "passenger",
+                "marshall",
+                "mechanic",
+                "air hostess",
+                "copilot",
+                "captain",
+                "economy class passenger"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "bank",
+            "roles": [
+                "armored car driver",
+                "manager",
+                "consultant",
+                "robber",
+                "security guard",
+                "teller",
+                "customer"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "beach",
+            "roles": [
+                "beach waitress",
+                "kite surfer",
+                "lifeguard",
+                "theif",
+                "beach photographer",
+                "ice cream truck driver",
+                "beach goer"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "cathedral",
+            "roles": [
+                "priest",
+                "beggar",
+                "sinner",
+                "tourist",
+                "sponsor",
+                "chorister",
+                "parishioner"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "circus tent",
+            "roles": [
+                "acrobat",
+                "animal trainer",
+                "magician",
+                "fire eater",
+                "clown",
+                "juggler",
+                "visitor"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "corporate party",
+            "roles": [
+                "entertainer",
+                "manager",
+                "unwanted guest",
+                "owner",
+                "secretary",
+                "delivery boy",
+                "accountant"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "crusader army",
+            "roles": [
+                "monk",
+                "imprisoned saracen",
+                "servant",
+                "bishop",
+                "squire",
+                "archer",
+                "knight"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "casino",
+            "roles": [
+                "bartender",
+                "head security guard",
+                "bouncer",
+                "manager",
+                "hustler",
+                "dealer",
+                "gambler"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "day spa",
+            "roles": [
+                "stylist",
+                "masseuse",
+                "manicurist",
+                "makeup artist",
+                "dermatologist",
+                "deautician",
+                "customer"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "embassy",
+            "roles": [
+                "security guard",
+                "secretary",
+                "ambassador",
+                "tourist",
+                "refugee",
+                "diplomat",
+                "government offical"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "hospital",
+            "roles": [
+                "nurse",
+                "doctor",
+                "anesthesiologist",
+                "intern",
+                "therapist",
+                "surgeon",
+                "patient"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "hotel",
+            "roles": [
+                "doorman",
+                "security guard",
+                "manager",
+                "housekeeper",
+                "bartender",
+                "bellman",
+                "customer"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "military base",
+            "roles": [
+                "deserter",
+                "colonel",
+                "medic",
+                "sniper",
+                "officer",
+                "tank engineer",
+                "soldier"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "movie studio",
+            "roles": [
+                "stunt man",
+                "sound engineer",
+                "camera man",
+                "director",
+                "costume artist",
+                "producer",
+                "actor"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "ocean liner",
+            "roles": [
+                "cook",
+                "captain",
+                "bartender",
+                "musician",
+                "waiter",
+                "mechanic",
+                "rich passenger"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "passenger train",
+            "roles": [
+                "mechanic",
+                "border patrol",
+                "train attendant",
+                "restaurant chef", 
+                "train driver",
+                "stoker",
+                "passenger"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "pirate ship",
+            "roles": [
+                "cook",
+                "slave",
+                "cannoneer",
+                "tied up prisoner",
+                "cabin boy",
+                "brave captain",
+                "sailor"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "polar station",
+            "roles": [
+                "medic",
+                "expedition leader",
+                "biologist",
+                "radioman",
+                "hydrologist",
+                "meterologist",
+                "geologist"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "police station",
+            "roles": [
+                "detective",
+                "lawyer",
+                "journalist",
+                "criminalist",
+                "archivist",
+                "criminal",
+                "patrol officer"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "resturant",
+            "roles": [
+                "musician",
+                "bouncer",
+                "hostess",
+                "head chef",
+                "food critic",
+                "waiter",
+                "customer"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "school",
+            "roles": [
+                "gym teacher",
+                "principal",
+                "security guard",
+                "janitor",
+                "cafeteria lady",
+                "maitenence man",
+                "student"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "service station",
+            "roles": [
+                "manager",
+                "tire specialist",
+                "biker",
+                "car owner",
+                "car wash operator",
+                "electrician",
+                "auto mechanic"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "space station",
+            "roles": [
+                "engineer",
+                "alien",
+                "pilot",
+                "commander",
+                "scientist",
+                "doctor",
+                "space tourist"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "submarine",
+            "roles": [
+                "cook",
+                "commander",
+                "sonar technician",
+                "electronics technician",
+                "radioman",
+                "navigator",
+                "sailor"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "supermarket",
+            "roles": [
+                "cashier",
+                "butcher",
+                "janitor",
+                "security guard", 
+                "food sample demonstrator",
+                "shelf stocker",
+                "customer"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "theater",
+            "roles": [
+                "coat check lady",
+                "prompter",
+                "cashier",
+                "director",
+                "actor",
+                "crew man",
+                "audience member"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "university",
+            "roles": [
+                "graduate student",
+                "professor",
+                "annoying roomate",
+                "dean",
+                "psychologist",
+                "maitenence man",
+                "janitor",
+                "student"
+            ],
+            "spies": 1
+        },
+        {
+            "name": "world war ii squad",
+            "roles": [
+                "resistance fighter",
+                "radioman",
+                "scout",
+                "medic",
+                "cook",
+                "prisoner",
+                "soldier"
+            ],
+            "spies": 1
+        }
+    ]
+}
