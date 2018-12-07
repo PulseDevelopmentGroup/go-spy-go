@@ -58,15 +58,15 @@ func main() {
 
 	print("general", "Starting web server on port: "+config.Api.Port)
 	http.HandleFunc("/", handler)
-	http.HandleFunc("/api", api)
+	http.HandleFunc("/api", apiHandler)
 	http.ListenAndServe(":"+config.Api.Port, nil)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	http.FileServer(http.Dir("public/")) //Should probably fix this sometime
+	http.FileServer(http.Dir("public"))
 }
 
-func api(w http.ResponseWriter, r *http.Request) {
+func apiHandler(w http.ResponseWriter, r *http.Request) {
 	connection, err := websockets.Upgrade(w, r)
 	if err != nil {
 		fmt.Println(err)
@@ -75,15 +75,19 @@ func api(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		var request websockets.Request
+		var data websockets.GameData
 		connection.ReadJSON(&request)
 
+		json.Unmarshal([]byte(request.Data), &data)
+		websockets.Clients[data.Username]
+    
 		print("ws", "Recieved: Kind: "+request.Kind+" Data: "+request.Data)
 
 		switch request.Kind {
 		case "CREATE_GAME":
-			websockets.ClientResponse(createGame(request.Data), connection)
+			websockets.Send(createGame(data, connection), connection)
 		case "JOIN_GAME":
-			websockets.ClientResponse(joinGame(request.Data), connection)
+			websockets.Send(joinGame(data, connection), connection)
 		case "START_GAME":
 			//websockets.ClientResponse(startGame(request.Data), connection)
 			//Start game
@@ -92,7 +96,7 @@ func api(w http.ResponseWriter, r *http.Request) {
 		case "LEAVE_GAME":
 			//Leave game
 		default:
-			websockets.ClientResponse(&websockets.Response{
+			websockets.Send(&websockets.Response{
 				Kind: request.Kind,
 				Data: request.Data,
 				Err: marshal(&websockets.ErrData{
@@ -102,12 +106,11 @@ func api(w http.ResponseWriter, r *http.Request) {
 			}, connection)
 		}
 	}
+
 }
 
-func createGame(data string) *websockets.Response {
+func createGame(gameData websockets.GameData) *websockets.Response {
 	var code string
-	var gameData websockets.GameData
-	json.Unmarshal([]byte(data), &gameData)
 
 	if gameData.GameId == "" {
 		code = generateCode()
@@ -146,26 +149,23 @@ func createGame(data string) *websockets.Response {
 				}),
 			}
 		}
-	} else {
-		print("api", "Game \""+code+"\" doesn't exist, creating...")
-		joinGame(marshal(&websockets.GameData{
+	}
+	print("api", "Game \""+code+"\" doesn't exist, creating...")
+	joinGame(marshal(&websockets.GameData{
+		GameId:   code,
+		Username: gameData.Username,
+	}))
+	return &websockets.Response{
+		Kind: "CREATE_GAME",
+		Data: marshal(&websockets.GameData{
 			GameId:   code,
 			Username: gameData.Username,
-		}))
-		return &websockets.Response{
-			Kind: "CREATE_GAME",
-			Data: marshal(&websockets.GameData{
-				GameId:   code,
-				Username: gameData.Username,
-			}),
-		}
+		}),
 	}
+
 }
 
-func joinGame(data string) *websockets.Response {
-	var gameData websockets.GameData
-	json.Unmarshal([]byte(data), &gameData)
-
+func joinGame(gameData websockets.GameData) *websockets.Response {
 	if gameData.GameId == "" {
 		print("api", "Game code blank, error")
 		return &websockets.Response{
@@ -262,6 +262,27 @@ func generateCode() string {
 	return string(b)
 }
 
+func marshal(input interface{}) string {
+	r, err := json.Marshal(input)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return string(r)
+}
+
+func readConfig(file string) (Config, error) {
+	var config Config
+	osFile, err := os.Open(file)
+	defer osFile.Close()
+	if err != nil {
+		return config, err
+	}
+
+	json.NewDecoder(osFile).Decode(&config)
+	fmt.Println(config)
+	return config, err
+}
+
 func print(loglevel, message string) {
 	var prefix string
 	switch loglevel {
@@ -275,12 +296,4 @@ func print(loglevel, message string) {
 		prefix = "[Websockets] "
 	}
 	fmt.Println(prefix + message)
-}
-
-func marshal(input interface{}) string {
-	r, err := json.Marshal(input)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	return string(r)
 }
