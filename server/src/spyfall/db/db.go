@@ -65,21 +65,26 @@ func AddPlayer(gamecode, username string) (string, error) {
 	}
 }
 
-func GetPlayers(gamecode string) ([]string, error) {
+func GetPid(gamecode, username string) (string, error) {
+	players, err := GetPlayers(gamecode)
+	for i := range players {
+		fmt.Println("GetPid - " + players[i].Username)
+		if players[i].Username == username {
+			return players[i].PlayerID.Hex(), err
+		}
+	}
+	return "", fmt.Errorf("NO_PLAYER_EXISTS")
+}
+
+func GetPlayers(gamecode string) ([]Player, error) {
 	game, gdErr := GetGameData(gamecode)
-	players := []string{}
 	if gdErr != nil {
 		if gdErr == fmt.Errorf("NO_GAME_EXISTS") {
 			return nil, fmt.Errorf("NO_GAME_EXISTS")
 		}
 		return nil, gdErr
 	}
-	fmt.Println(len(game.Players))
-	for i := 0; i < len(game.Players); i++ {
-		players = append(players, game.Players[i].Username)
-	}
-
-	return players, nil
+	return game.Players, nil
 }
 
 func SetLocation(gamecode, location string) error {

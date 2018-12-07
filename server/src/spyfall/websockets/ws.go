@@ -50,8 +50,22 @@ func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	return connection, nil
 }
 
-func Send(response *Response, socket *websocket.Conn) (error, error) {
+func SendToPlayer(response *Response, socket *websocket.Conn) (error, error) {
 	r, marshalErr := json.Marshal(response)
 	writeErr := socket.WriteMessage(1, r)
 	return marshalErr, writeErr
+}
+
+//UNTESTED
+func SendToGame(response *Response, sockets []*websocket.Conn) (error, error) {
+	for i := range sockets {
+		marshalErr, writeErr := SendToPlayer(response, sockets[i])
+		if marshalErr != nil {
+			return marshalErr, nil
+		}
+		if writeErr != nil {
+			return nil, writeErr
+		}
+	}
+	return nil, nil
 }

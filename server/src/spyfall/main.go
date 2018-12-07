@@ -36,6 +36,8 @@ type Locations struct {
 	Locations []Location `json:"locations"`
 }
 
+var config Config
+
 func main() {
 	config, err := readConfig(configFile)
 	if err != nil {
@@ -89,13 +91,12 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 			joinGame(data, connection)
 		case "START_GAME":
 			//websockets.ClientResponse(startGame(request.Data), connection)
-			//Start game
 		case "STOP_GAME":
 			//Stop game
 		case "LEAVE_GAME":
 			//Leave game
 		default:
-			websockets.Send(&websockets.Response{
+			websockets.SendToPlayer(&websockets.Response{
 				Kind: request.Kind,
 				Data: request.Data,
 				Err: marshal(&websockets.ErrData{
@@ -124,7 +125,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 		fmt.Println(err)
 		if err == fmt.Errorf("GAME_ALREADY_EXISTS") {
 			print("api", "Game \""+code+"\" already exists in database.")
-			websockets.Send(&websockets.Response{
+			websockets.SendToPlayer(&websockets.Response{
 				Kind: "CREATE_GAME",
 				Data: marshal(&websockets.GameData{
 					GameId:   code,
@@ -138,7 +139,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 			return
 		} else {
 			print("api", "There was a big problem")
-			websockets.Send(&websockets.Response{
+			websockets.SendToPlayer(&websockets.Response{
 				Kind: "CREATE_GAME",
 				Data: marshal(&websockets.GameData{
 					GameId:   code,
@@ -153,7 +154,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 		}
 	}
 	print("api", "Game \""+code+"\" doesn't exist, creating...")
-	websockets.Send(&websockets.Response{
+	websockets.SendToPlayer(&websockets.Response{
 		Kind: "CREATE_GAME",
 		Data: marshal(&websockets.GameData{
 			GameId:   code,
@@ -167,7 +168,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 	if gameData.GameId == "" {
 		print("api", "Game code blank, error")
-		websockets.Send(&websockets.Response{
+		websockets.SendToPlayer(&websockets.Response{
 			Kind: "JOIN_GAME",
 			Data: marshal(gameData),
 			Err: marshal(&websockets.ErrData{
@@ -184,7 +185,7 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 		print("api", "Error: "+err.Error())
 
 		if err.Error() == "NO_GAME_EXISTS" {
-			websockets.Send(&websockets.Response{
+			websockets.SendToPlayer(&websockets.Response{
 				Kind: "JOIN_GAME",
 				Data: marshal(gameData),
 				Err: marshal(&websockets.ErrData{
@@ -195,7 +196,7 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 			return
 		}
 		if err.Error() == "USER_ALREADY_EXISTS" {
-			websockets.Send(&websockets.Response{
+			websockets.SendToPlayer(&websockets.Response{
 				Kind: "JOIN_GAME",
 				Data: marshal(gameData),
 				Err: marshal(&websockets.ErrData{
@@ -205,7 +206,7 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 			}, connection)
 			return
 		}
-		websockets.Send(&websockets.Response{
+		websockets.SendToPlayer(&websockets.Response{
 			Kind: "JOIN_GAME",
 			Data: marshal(gameData),
 			Err: marshal(&websockets.ErrData{
@@ -217,14 +218,15 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 	}
 	print("api", "Game \""+gameData.GameId+"\" found in database, joining...")
 	websockets.Clients[pid] = connection
-	websockets.Send(&websockets.Response{
+	websockets.SendToPlayer(&websockets.Response{
 		Kind: "JOIN_GAME",
 		Data: marshal(gameData),
 	}, connection)
+
 	return
 }
 
-/*func getLocations(file string) (Locations, error) {
+func getLocations(file string) (Locations, error) {
 	var locations Locations
 	osFile, err := os.Open(file)
 	defer osFile.Close()
@@ -234,7 +236,7 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 
 	json.NewDecoder(osFile).Decode(&locations)
 	return locations, err
-}*/
+}
 
 func readConfig(file string) (Config, error) {
 	var config Config
