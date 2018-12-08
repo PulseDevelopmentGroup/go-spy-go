@@ -44,7 +44,7 @@ func Connect(dbo *DBO) error {
 
 //AddPlayer adds a new player to the database
 //Returns the player id and an error
-func AddPlayer(gamecode, username string) (string, error) {
+func AddPlayer(gamecode, username string) (bson.ObjectId, error) {
 	err := checkGame(gamecode)
 	if err != nil {
 		if err == fmt.Errorf("NO_GAME_EXISTS") {
@@ -66,19 +66,22 @@ func AddPlayer(gamecode, username string) (string, error) {
 		Role:     "null",
 		Spy:      false,
 	}}})
-	return pid.Hex(), udErr
+	return pid, udErr
 }
 
 //GetPid returns the id of the player in a specific game based on their username
-func GetPid(gamecode, username string) (string, error) {
+func GetPid(gamecode, username string) (bson.ObjectId, error) {
 	players, err := GetPlayers(gamecode)
+	if err != nil {
+		fmt.Println(err)
+	}
 	for i := range players {
-		fmt.Println("GetPid - " + players[i].Username)
 		if players[i].Username == username {
-			return players[i].PlayerID.Hex(), err
+			fmt.Println("GetPid - " + players[i].Username)
+			return players[i].PlayerID, err
 		}
 	}
-	return "", fmt.Errorf("NO_PLAYER_EXISTS")
+	return bson.NewObjectId(), fmt.Errorf("NO_PLAYER_EXISTS")
 }
 
 //GetPlayers returns an array of players in a game
@@ -92,34 +95,18 @@ func GetPlayers(gamecode string) ([]Player, error) {
 
 //GetPlayer returns a player struct with the data of a player matching a username
 //TODO: TEST THIS
-func GetPlayer(gamecode, username string) (Player, error) {
-	players, err := GetPlayers(gamecode)
-	if err != nil {
-		return Player{}, err
-	}
-	for i := range players {
-		if players[i].Username == username {
-			return players[i], nil
-		}
-	}
-	return Player{}, fmt.Errorf("NO_PLAYER_EXISTS")
+//TODO: Add error handling to this
+func GetPlayer(pid string) Player {
+	game := Game{}
+	collection.Find(bson.M{"players.playerid": bson.ObjectIdHex(pid)}).Select(bson.M{"players.$": 1}).One(&game)
+	return game.Players[0]
 }
 
 //SetPlayer updates a player's record with elements from a new supplied player
+//When supplying the "Player" variable, don't change it's object id. You're gonna have a bad time
 //TODO: TEST THIS
-func SetPlayer(gamecode string, player Player) error {
-	err := checkGame(gamecode)
-	if err != nil {
-		if err == fmt.Errorf("NO_GAME_EXISTS") {
-			return fmt.Errorf("NO_GAME_EXISTS")
-		}
-		return err
-	}
-
-	updatePlayer, gpErr := GetPlayer(gamecode, player.Username)
-	if gpErr != nil {
-		return gpErr
-	}
+func SetPlayer(player *Player) error {
+	updatePlayer := GetPlayer(player.PlayerID.Hex())
 
 	if updatePlayer.Username != player.Username {
 		updatePlayer.Username = player.Username
@@ -131,7 +118,7 @@ func SetPlayer(gamecode string, player Player) error {
 		updatePlayer.Spy = player.Spy
 	}
 
-	collection.Update(bson.M{"gamecode": gamecode, "players.username": player.Username}, bson.M{"$set": bson.M{"players": updatePlayer}})
+	collection.Update(bson.M{"players.playerid": player.PlayerID}, bson.M{"$set": bson.M{"players.$": updatePlayer}})
 	return nil
 }
 
@@ -160,43 +147,6 @@ func GetLocation(gamecode string) (string, error) {
 	}
 
 	return game.Location, nil
-}
-
-//SetSpies sets the spies in a game with an array of usernames
-//Depreciated in favor of the SetPlayer function
-func SetSpies(gamecode string, spies []string) error {
-	err := checkGame(gamecode)
-	if err != nil {
-		if err == fmt.Errorf("NO_GAME_EXISTS") {
-			return fmt.Errorf("NO_GAME_EXISTS")
-		}
-		return err
-	}
-	for i := 0; i < len(spies); i++ {
-		collection.Update(bson.M{"gamecode": gamecode, "players.username": spies[i]}, bson.M{"$set": bson.M{"players.$.spy": true}})
-	}
-
-	return nil
-}
-
-//GetSpies returns an array of strings with the usernames of the game's spies
-//Depreciated in favor of the GetPlayers function
-func GetSpies(gamecode string) ([]string, error) {
-	game, gdErr := GetGameData(gamecode)
-	spies := []string{}
-	if gdErr != nil {
-		if gdErr == fmt.Errorf("NO_GAME_EXISTS") {
-			return nil, fmt.Errorf("NO_GAME_EXISTS")
-		}
-		return nil, gdErr
-	}
-	for i := 0; i < len(game.Players); i++ {
-		if game.Players[i].Spy {
-			spies = append(spies, game.Players[i].Username)
-		}
-	}
-
-	return spies, nil
 }
 
 //NewGame creates a new game in the DB with the provided gamecode
@@ -249,4 +199,41 @@ func insertGame(entry *Game) error {
 		return fmt.Errorf("GAME_ALREADY_EXISTS")
 	}
 	return collection.Insert(entry)
+}
+
+//SetSpies sets the spies in a game with an array of usernames
+//Depreciated in favor of the SetPlayer function
+func SetSpies(gamecode string, spies []string) error {
+	err := checkGame(gamecode)
+	if err != nil {
+		if err == fmt.Errorf("NO_GAME_EXISTS") {
+			return fmt.Errorf("NO_GAME_EXISTS")
+		}
+		return err
+	}
+	for i := 0; i < len(spies); i++ {
+		collection.Update(bson.M{"gamecode": gamecode, "players.username": spies[i]}, bson.M{"$set": bson.M{"players.$.spy": true}})
+	}
+
+	return nil
+}
+
+//GetSpies returns an array of strings with the usernames of the game's spies
+//Depreciated in favor of the GetPlayers function
+func GetSpies(gamecode string) ([]string, error) {
+	game, gdErr := GetGameData(gamecode)
+	spies := []string{}
+	if gdErr != nil {
+		if gdErr == fmt.Errorf("NO_GAME_EXISTS") {
+			return nil, fmt.Errorf("NO_GAME_EXISTS")
+		}
+		return nil, gdErr
+	}
+	for i := 0; i < len(game.Players); i++ {
+		if game.Players[i].Spy {
+			spies = append(spies, game.Players[i].Username)
+		}
+	}
+
+	return spies, nil
 }

@@ -8,6 +8,8 @@ import (
 	"os"
 	"spyfall/db"
 	"spyfall/websockets"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -39,10 +41,11 @@ type Locations struct {
 var config Config
 
 func main() {
-	config, err := readConfig(configFile)
+	rConfig, err := readConfig(configFile)
 	if err != nil {
 		fmt.Println(err)
 	}
+	config = rConfig
 
 	print("db", "Attempting to connect to database: \""+config.Databse.Name+"\" at: "+config.Databse.Host+":"+config.Databse.Port)
 
@@ -77,20 +80,22 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		var request websockets.Request
-		var data websockets.GameData
+		var gameData websockets.GameData
+		var startData websockets.StartData
 		connection.ReadJSON(&request)
 
-		json.Unmarshal([]byte(request.Data), &data)
+		json.Unmarshal([]byte(request.Data), &gameData)
+		json.Unmarshal([]byte(request.Data), &startData)
 
 		print("ws", "Recieved: Kind: "+request.Kind+" Data: "+request.Data)
 
 		switch request.Kind {
 		case "CREATE_GAME":
-			createGame(data, connection)
+			createGame(gameData, connection)
 		case "JOIN_GAME":
-			joinGame(data, connection)
+			joinGame(gameData, connection)
 		case "START_GAME":
-			//websockets.ClientResponse(startGame(request.Data), connection)
+			startGame(startData, connection)
 		case "STOP_GAME":
 			//Stop game
 		case "LEAVE_GAME":
@@ -112,14 +117,14 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 func createGame(gameData websockets.GameData, connection websockets.Connection) {
 	var code string
 
-	if gameData.GameId == "" {
+	if gameData.GameID == "" {
 		code = generateCode()
-		gameData.GameId = code
+		gameData.GameID = code
 	} else {
-		code = gameData.GameId
+		code = gameData.GameID
 	}
 
-	err := db.NewGame(code, "spy-school") //This needs to be randomly generated
+	err := db.NewGame(code)
 
 	if err != nil {
 		fmt.Println(err)
@@ -128,7 +133,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 			websockets.SendToPlayer(&websockets.Response{
 				Kind: "CREATE_GAME",
 				Data: marshal(&websockets.GameData{
-					GameId:   code,
+					GameID:   code,
 					Username: gameData.Username,
 				}),
 				Err: marshal(&websockets.ErrData{
@@ -142,7 +147,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 			websockets.SendToPlayer(&websockets.Response{
 				Kind: "CREATE_GAME",
 				Data: marshal(&websockets.GameData{
-					GameId:   code,
+					GameID:   code,
 					Username: gameData.Username,
 				}),
 				Err: marshal(&websockets.ErrData{
@@ -157,7 +162,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 	websockets.SendToPlayer(&websockets.Response{
 		Kind: "CREATE_GAME",
 		Data: marshal(&websockets.GameData{
-			GameId:   code,
+			GameID:   code,
 			Username: gameData.Username,
 		}),
 	}, connection)
@@ -166,7 +171,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 }
 
 func joinGame(gameData websockets.GameData, connection websockets.Connection) {
-	if gameData.GameId == "" {
+	if gameData.GameID == "" {
 		print("api", "Game code blank, error")
 		websockets.SendToPlayer(&websockets.Response{
 			Kind: "JOIN_GAME",
@@ -179,7 +184,7 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 		return
 	}
 
-	pid, err := db.AddPlayer(gameData.GameId, gameData.Username)
+	pid, err := db.AddPlayer(gameData.GameID, gameData.Username)
 	if err != nil {
 		fmt.Println(err)
 		print("api", "Error: "+err.Error())
@@ -190,7 +195,7 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 				Data: marshal(gameData),
 				Err: marshal(&websockets.ErrData{
 					Err:  "NO_GAME",
-					Desc: "The game: \"" + gameData.GameId + "\" does not exist.",
+					Desc: "The game: \"" + gameData.GameID + "\" does not exist.",
 				}),
 			}, connection)
 			return
@@ -201,7 +206,7 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 				Data: marshal(gameData),
 				Err: marshal(&websockets.ErrData{
 					Err:  "DUP_USER",
-					Desc: "A user with the username: \"" + gameData.Username + "\" already exists in game: \"" + gameData.GameId + "\".",
+					Desc: "A user with the username: \"" + gameData.Username + "\" already exists in game: \"" + gameData.GameID + "\".",
 				}),
 			}, connection)
 			return
@@ -216,8 +221,8 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 		}, connection)
 		return
 	}
-	print("api", "Game \""+gameData.GameId+"\" found in database, joining...")
-	websockets.Clients[pid] = connection
+	print("api", "Game \""+gameData.GameID+"\" found in database, joining...")
+	websockets.Clients[pid.Hex()] = connection
 	websockets.SendToPlayer(&websockets.Response{
 		Kind: "JOIN_GAME",
 		Data: marshal(gameData),
@@ -226,8 +231,78 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 	return
 }
 
+func startGame(startData websockets.StartData, connection websockets.Connection) {
+	locations, err := getLocations(config.Locations[0])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	rand.Seed(time.Now().UnixNano())
+	location := locations.Locations[rand.Intn(len(locations.Locations))]
+	print("game", "--------------------------------------------------------------------")
+	print("game", "Location: "+location.Name)
+	print("game", "Roles: ["+strings.Join(location.Roles, ", ")+"]")
+	print("game", "Number of Spies: "+strconv.Itoa(location.Spies))
+	print("game", "--------------------------------------------------------------------")
+
+	db.SetLocation(startData.GameID, location.Name)
+
+	setRoles(startData.GameID, location.Roles, location.Spies)
+}
+
+func setRoles(gamecode string, inputRoles []string, spies int) {
+	players, err := db.GetPlayers(gamecode)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	print("game", "There are "+strconv.Itoa(len(players))+" players who need roles assigned. This location calls for "+strconv.Itoa(spies)+" spy/spies")
+
+	//Clear roles and spies
+	//This should be moved to stop game function eventually
+	for i := 0; i < len(players); i++ {
+		print("game", "Clearing roles for: "+players[i].Username+" ("+players[i].PlayerID.Hex()+")")
+		players[i].Role = "null"
+		players[i].Spy = false
+	}
+
+	for i := 0; i < spies; i++ {
+		rand.Seed(time.Now().UnixNano())
+		spyIndex := rand.Intn(len(players))
+		if players[spyIndex].Spy {
+			print("game", players[i].Username+" ("+players[i].PlayerID.Hex()+") is already a spy! Skipping.")
+		} else {
+			print("game", "A spy is: "+players[spyIndex].Username+" ("+players[spyIndex].PlayerID.Hex()+")")
+			players[spyIndex].Role = "spy"
+			players[spyIndex].Spy = true
+
+			db.SetPlayer(&players[spyIndex])
+		}
+	}
+
+	roles := inputRoles
+	for i := 0; i < len(players); i++ {
+		rand.Seed(time.Now().UnixNano())
+		if players[i].Spy {
+			print("game", "Player: "+players[i].Username+" ("+players[i].PlayerID.Hex()+") is a spy! They cannot have a role!")
+		} else {
+			if len(roles) <= 1 {
+				roles = inputRoles
+				print("game", "All roles assigned! Resetting role list!")
+			}
+			roleIndex := rand.Intn(len(roles))
+			players[i].Role = roles[roleIndex]
+			print("game", "Assigning role: "+players[i].Role+" to player: "+players[i].Username+" ("+players[i].PlayerID.Hex()+")")
+			db.SetPlayer(&players[i])
+
+			roles = append(roles[:roleIndex], roles[roleIndex+1:]...)
+		}
+	}
+}
+
 func getLocations(file string) (Locations, error) {
 	var locations Locations
+
 	osFile, err := os.Open(file)
 	defer osFile.Close()
 	if err != nil {
@@ -258,7 +333,7 @@ func generateCode() string {
 	for i := range b {
 		b[i] = letter[rand.Intn(len(letter))]
 	}
-	print("general", "generateCode() called, code: "+string(b))
+	print("game", "generateCode() called, code: "+string(b))
 	return string(b)
 }
 
@@ -274,13 +349,15 @@ func print(loglevel, message string) {
 	var prefix string
 	switch loglevel {
 	case "api":
-		prefix = "[   API    ] "
+		prefix = "] [   API    ] "
 	case "general":
-		prefix = "[ General  ] "
+		prefix = "] [   Main   ] "
 	case "db":
-		prefix = "[ Database ] "
+		prefix = "] [ Database ] "
 	case "ws":
-		prefix = "[Websockets] "
+		prefix = "] [Websockets] "
+	case "game":
+		prefix = "] [   Game   ] "
 	}
-	fmt.Println(prefix + message)
+	fmt.Println("[" + time.Now().Format("01-02-2006 15:04:05") + prefix + message)
 }
