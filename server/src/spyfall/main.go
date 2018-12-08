@@ -82,7 +82,13 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		var request websockets.Request
 		var gameData websockets.GameData
 		var startData websockets.StartData
-		connection.ReadJSON(&request)
+
+		err := connection.ReadJSON(&request)
+		if err != nil {
+			connection.Close()
+			print("ws", "Websockets connection terminated")
+			return
+		}
 
 		json.Unmarshal([]byte(request.Data), &gameData)
 		json.Unmarshal([]byte(request.Data), &startData)
