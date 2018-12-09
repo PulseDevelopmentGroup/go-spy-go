@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 var configFile = "config.json"
@@ -81,7 +83,6 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		var request websockets.Request
 		var gameData websockets.GameData
-		var startData websockets.StartData
 
 		err := connection.ReadJSON(&request)
 		if err != nil {
@@ -91,7 +92,6 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		json.Unmarshal([]byte(request.Data), &gameData)
-		json.Unmarshal([]byte(request.Data), &startData)
 
 		print("ws", "Recieved: Kind: "+request.Kind+" Data: "+request.Data)
 
@@ -101,11 +101,11 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		case "JOIN_GAME":
 			joinGame(gameData, connection)
 		case "START_GAME":
-			startGame(startData, connection)
+			startGame(connection)
 		case "STOP_GAME":
 			//Stop game
 		case "LEAVE_GAME":
-			//Leave game
+			leaveGame(connection)
 		default:
 			websockets.SendToPlayer(&websockets.Response{
 				Kind: request.Kind,
@@ -120,7 +120,8 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func createGame(gameData websockets.GameData, connection websockets.Connection) {
+//Main game Functions
+func createGame(gameData websockets.GameData, connection *websocket.Conn) {
 	var code string
 
 	if gameData.GameID == "" {
@@ -130,7 +131,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 		code = gameData.GameID
 	}
 
-	err := db.NewGame(code)
+	err := db.AddGame(code)
 
 	if err != nil {
 		fmt.Println(err)
@@ -176,7 +177,7 @@ func createGame(gameData websockets.GameData, connection websockets.Connection) 
 	return
 }
 
-func joinGame(gameData websockets.GameData, connection websockets.Connection) {
+func joinGame(gameData websockets.GameData, connection *websocket.Conn) {
 	if gameData.GameID == "" {
 		print("api", "Game code blank, error")
 		websockets.SendToPlayer(&websockets.Response{
@@ -228,7 +229,12 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 		return
 	}
 	print("api", "Game \""+gameData.GameID+"\" found in database, joining...")
-	websockets.Clients[pid.Hex()] = connection
+
+	websockets.ClientById[pid.Hex()] = connection
+	websockets.ClientByConn[connection] = pid.Hex()
+
+	print("ws", "Associating this connection with player id: "+pid.Hex())
+
 	websockets.SendToPlayer(&websockets.Response{
 		Kind: "JOIN_GAME",
 		Data: marshal(gameData),
@@ -237,7 +243,15 @@ func joinGame(gameData websockets.GameData, connection websockets.Connection) {
 	return
 }
 
-func startGame(startData websockets.StartData, connection websockets.Connection) {
+func startGame(connection *websocket.Conn) {
+	gamecode, err := db.GetGameCode(websockets.ClientByConn[connection])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	print("game", "Starting game: "+gamecode)
+
 	locations, err := getLocations(config.Locations[0])
 	if err != nil {
 		fmt.Println(err)
@@ -251,11 +265,46 @@ func startGame(startData websockets.StartData, connection websockets.Connection)
 	print("game", "Number of Spies: "+strconv.Itoa(location.Spies))
 	print("game", "--------------------------------------------------------------------")
 
-	db.SetLocation(startData.GameID, location.Name)
+	db.SetLocation(gamecode, location.Name)
 
-	setRoles(startData.GameID, location.Roles, location.Spies)
+	setRoles(gamecode, location.Roles, location.Spies)
 }
 
+func leaveGame(connection *websocket.Conn) {
+	pid := websockets.ClientByConn[connection]
+	player, err := db.GetPlayer(pid)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	gamecode, err := db.GetGameCode(pid)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	game, err := db.GetGameData(gamecode)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	print("game", "Removing player: "+player.Username+" ("+pid+") from game: "+game.GameCode)
+
+	for i := 0; i < len(game.Players); i++ {
+		websockets.SendToPlayer(&websockets.Response{
+			Kind: "LEAVE_GAME",
+			Data: marshal(&websockets.LeaveData{
+				Username: player.Username,
+				Reason:   "Requested to leave/lost connection",
+			}),
+		}, websockets.ClientById[game.Players[i].PlayerID.Hex()])
+	}
+
+	db.DelPlayer(pid)
+	delete(websockets.ClientByConn, connection)
+	delete(websockets.ClientById, pid)
+}
+
+//Helper Game functions
 func setRoles(gamecode string, inputRoles []string, spies int) {
 	players, err := db.GetPlayers(gamecode)
 	if err != nil {
@@ -319,6 +368,18 @@ func getLocations(file string) (Locations, error) {
 	return locations, err
 }
 
+func generateCode() string {
+	var letter = []rune("abcdefghijklmnopqrstuvwxyz")
+	rand.Seed(time.Now().UnixNano())
+	b := make([]rune, 6)
+	for i := range b {
+		b[i] = letter[rand.Intn(len(letter))]
+	}
+	print("game", "generateCode() called, code: "+string(b))
+	return string(b)
+}
+
+//Utility functions
 func readConfig(file string) (Config, error) {
 	var config Config
 	osFile, err := os.Open(file)
@@ -330,17 +391,6 @@ func readConfig(file string) (Config, error) {
 	json.NewDecoder(osFile).Decode(&config)
 	fmt.Println(config)
 	return config, err
-}
-
-func generateCode() string {
-	var letter = []rune("abcdefghijklmnopqrstuvwxyz")
-	rand.Seed(time.Now().UnixNano())
-	b := make([]rune, 6)
-	for i := range b {
-		b[i] = letter[rand.Intn(len(letter))]
-	}
-	print("game", "generateCode() called, code: "+string(b))
-	return string(b)
 }
 
 func marshal(input interface{}) string {
