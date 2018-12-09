@@ -3,7 +3,7 @@ package db
 import (
 	"fmt"
 
-	"gopkg.in/mgo.v2"
+	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -84,29 +84,18 @@ func GetPid(gamecode, username string) (bson.ObjectId, error) {
 	return bson.NewObjectId(), fmt.Errorf("NO_PLAYER_EXISTS")
 }
 
-//GetPlayers returns an array of players in a game
-func GetPlayers(gamecode string) ([]Player, error) {
-	game, gdErr := GetGameData(gamecode)
-	if gdErr != nil {
-		return nil, gdErr
-	}
-	return game.Players, nil
-}
-
-//GetPlayer returns a player struct with the data of a player matching a username
-//TODO: TEST THIS
-//TODO: Add error handling to this
-func GetPlayer(pid string) Player {
+//GetPlayer returns a player struct with the data of a player matching a pid
+func GetPlayer(pid string) (Player, error) {
 	game := Game{}
-	collection.Find(bson.M{"players.playerid": bson.ObjectIdHex(pid)}).Select(bson.M{"players.$": 1}).One(&game)
-	return game.Players[0]
+	err := collection.Find(bson.M{"players.playerid": bson.ObjectIdHex(pid)}).Select(bson.M{"players.$": 1}).One(&game)
+	return game.Players[0], err
 }
 
 //SetPlayer updates a player's record with elements from a new supplied player
 //When supplying the "Player" variable, don't change it's object id. You're gonna have a bad time
 //TODO: TEST THIS
 func SetPlayer(player *Player) error {
-	updatePlayer := GetPlayer(player.PlayerID.Hex())
+	updatePlayer, err := GetPlayer(player.PlayerID.Hex())
 
 	if updatePlayer.Username != player.Username {
 		updatePlayer.Username = player.Username
@@ -119,7 +108,60 @@ func SetPlayer(player *Player) error {
 	}
 
 	collection.Update(bson.M{"players.playerid": player.PlayerID}, bson.M{"$set": bson.M{"players.$": updatePlayer}})
-	return nil
+	return err
+}
+
+//DelPlayer removes a player matching a suppiled pid
+func DelPlayer(pid string) error {
+	return collection.Update(bson.M{"players.playerid": bson.ObjectIdHex(pid)}, bson.M{"$pull": bson.M{"players": bson.M{"playerid": bson.ObjectIdHex(pid)}}})
+}
+
+//GetPlayers returns an array of players in a game
+func GetPlayers(gamecode string) ([]Player, error) {
+	game, gdErr := GetGameData(gamecode)
+	if gdErr != nil {
+		return nil, gdErr
+	}
+	return game.Players, nil
+}
+
+//AddGame creates a new game in the DB with the provided gamecode
+//Returns error if game already exists or cannot be created
+//NOTE: LOCATION NOT SET HERE
+func AddGame(gamecode string) error {
+	return insertGame(&Game{
+		ID:       bson.NewObjectId(),
+		GameCode: gamecode,
+		Location: "null",
+		Players:  nil,
+	})
+}
+
+//DelGame deletes a game matching the supplied struct
+func DelGame(game Game) error {
+	return collection.Remove(game)
+}
+
+//GetGameData returns the Game struct that matches the provided gamecode
+//Returns error if game does not exist
+func GetGameData(gamecode string) (Game, error) {
+	checkGameErr := checkGame(gamecode)
+	result := Game{}
+	if checkGameErr != nil {
+		return result, checkGameErr
+	}
+	err := collection.Find(bson.M{"gamecode": gamecode}).One(&result)
+	if err != nil {
+		return result, err
+	}
+	return result, nil
+}
+
+//GetGameCode returns a gamecode string associated with a supplied pid
+func GetGameCode(pid string) (string, error) {
+	game := Game{}
+	err := collection.Find(bson.M{"players.playerid": bson.ObjectIdHex(pid)}).One(&game)
+	return game.GameCode, err
 }
 
 //SetLocation sets location of a specific game
@@ -149,34 +191,6 @@ func GetLocation(gamecode string) (string, error) {
 	return game.Location, nil
 }
 
-//NewGame creates a new game in the DB with the provided gamecode
-//Returns error if game already exists or cannot be created
-//NOTE: LOCATION NOT SET HERE
-func NewGame(gamecode string) error {
-	return insertGame(&Game{
-		ID:       bson.NewObjectId(),
-		GameCode: gamecode,
-		Location: "null",
-		Players:  nil,
-	})
-}
-
-//GetGameData returns the Game struct that matches the provided gamecode
-//Returns error if game does not exist
-//TODO Test this more
-func GetGameData(gamecode string) (Game, error) {
-	checkGameErr := checkGame(gamecode)
-	result := Game{}
-	if checkGameErr != nil {
-		return result, checkGameErr
-	}
-	err := collection.Find(bson.M{"gamecode": gamecode}).One(&result)
-	if err != nil {
-		return result, err
-	}
-	return result, nil
-}
-
 //Returns an error if game doesn't exist. Returns nothing if a game exists
 func checkGame(gamecode string) error {
 	gameCount, err := collection.Find(bson.M{"gamecode": gamecode}).Limit(1).Count()
@@ -199,41 +213,4 @@ func insertGame(entry *Game) error {
 		return fmt.Errorf("GAME_ALREADY_EXISTS")
 	}
 	return collection.Insert(entry)
-}
-
-//SetSpies sets the spies in a game with an array of usernames
-//Depreciated in favor of the SetPlayer function
-func SetSpies(gamecode string, spies []string) error {
-	err := checkGame(gamecode)
-	if err != nil {
-		if err == fmt.Errorf("NO_GAME_EXISTS") {
-			return fmt.Errorf("NO_GAME_EXISTS")
-		}
-		return err
-	}
-	for i := 0; i < len(spies); i++ {
-		collection.Update(bson.M{"gamecode": gamecode, "players.username": spies[i]}, bson.M{"$set": bson.M{"players.$.spy": true}})
-	}
-
-	return nil
-}
-
-//GetSpies returns an array of strings with the usernames of the game's spies
-//Depreciated in favor of the GetPlayers function
-func GetSpies(gamecode string) ([]string, error) {
-	game, gdErr := GetGameData(gamecode)
-	spies := []string{}
-	if gdErr != nil {
-		if gdErr == fmt.Errorf("NO_GAME_EXISTS") {
-			return nil, fmt.Errorf("NO_GAME_EXISTS")
-		}
-		return nil, gdErr
-	}
-	for i := 0; i < len(game.Players); i++ {
-		if game.Players[i].Spy {
-			spies = append(spies, game.Players[i].Username)
-		}
-	}
-
-	return spies, nil
 }
