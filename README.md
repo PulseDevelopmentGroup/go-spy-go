@@ -123,19 +123,64 @@ Start game is based on the websocket connection (so that it is not possible to s
 
 ### Message from server if OK
 
-*//TODO Add stuff here*
+This message is sent to all clients if the game is started
+
+```json
+{
+  "kind":"START_GAME",
+  "data":"{\"start\":true,\"location\":\"LOCATION\",\"role\":\"USERROLE\"}"
+}
+```
 
 ### Message from server if Error
 
-*//TODO Add stuff here*
+```json
+{
+  "kind":"START_GAME",
+  "data":"{\"start\":false}",
+  "error":"{\"error\":\"ERRORCODE\",\"description\":\"ERRORDESC\"}"
+}
+```
+
+## Stop Game
+
+### Message from client
+
+Stop game is based on the websocket connection (so that is is not possible to stop a game you are not a part of) so the message from theclient does not require any associated data.
+
+```json
+{
+  "kind":"STOP_GAME",
+  "data":"{}"
+}
+```
+
+### Message from server if OK
+
+This message is sent to all clients if the game is stopped
+
+```json
+{
+  "kind":"STOP_GAME",
+  "data":"{\"stop\":true}"
+}
+```
+
+### Message from server if Error
+
+```json
+{
+  "kind":"STOP_GAME",
+  "data":"{\"stop\":false}",
+  "error":"{\"error\":\"ERRORCODE\",\"description\":\"ERRORDESC\"}"
+}
+```
 
 ## Leave Game
 
 The same results can be achieved by simply closing the websocket connection
 
 ### Message from client
-
-Start game is based on the websocket connection (so that it is not possible to leave a game you are not a part of) so the message from the client does not require any associated data.
 
 ```json
 {
@@ -146,11 +191,22 @@ Start game is based on the websocket connection (so that it is not possible to l
 
 ### Message from server if OK
 
-*//TODO Add stuff here*
+```json
+{
+  "kind":"LEAVE_GAME",
+  "data":"{\"username\":\"USERNAME\",\"reason\":\"REASON\"}"
+}
+```
 
 ### Message from server if Error
 
-*//TODO Add stuff here*
+```json
+{
+  "kind":"LEAVE_GAME",
+  "data":"{\"username\":\"USERNAME\",\"reason\":\"REASON\"}",
+  "error":"{\"error\":\"ERRORCODE\",\"description\":\"ERRORDESC\"}"
+}
+```
 
 ## Error Codes
 
@@ -158,7 +214,7 @@ Start game is based on the websocket connection (so that it is not possible to l
 
 | Error Code            | Error Description                                         | Response Description                            |
 |-----------------------|-----------------------------------------------------------|-------------------------------------------------|
-| `GAME_ALREADY_EXISTS` | Game already exists in the database.                      | `Game: \"GAMEID\"  already exists in database.` |
+| `GAME_EXISTS` | Game already exists in the database.                      | `Game: \"GAMEID\"  already exists in database.` |
 | `UNKNOWN_ERROR`       | Something bad happened, but the server doesn't know what. | `This shouldn't happen, see the server log for details.`                            |
 
 ### Join Game Errors
@@ -168,3 +224,4 @@ Start game is based on the websocket connection (so that it is not possible to l
 | `NO_GAME_CODE`        | The user didn't supply a game code.                          | `Good luck joining a game with no code!`                                     |
 | `USER_ALREADY_EXISTS` | That user already exists in the database for that game code. | `A user with the username: \"USERNAME\" already exists in game: \"GAMEID\".` |
 | `UNKNOWN_ERROR`       | Something bad happened, but the server doesn't know what.    | `This shouldn't happen, see the server log for details.`                     |
+| `GAME_IN_PROGRESS`    | The game the user is trying to join is currently in progress, so they cannot join. | `There a game with the code: \"GAMEID\" is currently in progress. You must wait to join after the game is finished.` |
