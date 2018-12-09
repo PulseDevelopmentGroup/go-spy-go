@@ -25,7 +25,7 @@ These are just for development. Some reference material for how web socket messa
 
 ### Response from server if OK
 
-(Notice it's the exact same thing as the message from the client)
+(Notice it's the exact same thing as the message from the client. There will be a second response wich matches the sucessful join response)
 
 ```json
 {
@@ -109,4 +109,16 @@ These are just for development. Some reference material for how web socket messa
 ```
 
 ## Error Codes
-//TODO Add error codes here
+
+### Create Game Errors:
+| Error Code            | Error Description                                         | Response Description                            |
+|-----------------------|-----------------------------------------------------------|-------------------------------------------------|
+| `GAME_ALREADY_EXISTS` | Game already exists in the database.                      | `Game: \"GAMEID\"  already exists in database.` |
+| `UNKNOWN_ERROR`       | Something bad happened, but the server doesn't know what. | `This shouldn't happen, see the server log for details.`                            |
+
+### Join Game Errors:
+| Error Code            | Error Description                                            | Response Description                                                         |
+|-----------------------|--------------------------------------------------------------|------------------------------------------------------------------------------|
+| `NO_GAME_CODE`        | The user didn't supply a game code.                          | `Good luck joining a game with no code!`                                     |
+| `USER_ALREADY_EXISTS` | That user already exists in the database for that game code. | `A user with the username: \"USERNAME\" already exists in game: \"GAMEID\".` |
+| `UNKNOWN_ERROR`       | Something bad happened, but the server doesn't know what.    | `This shouldn't happen, see the server log for details.`                     |

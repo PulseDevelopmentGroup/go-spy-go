@@ -159,7 +159,7 @@ func createGame(gameData websockets.GameData, connection *websocket.Conn) {
 				}),
 				Err: marshal(&websockets.ErrData{
 					Err:  "UNKNOWN_ERROR",
-					Desc: "See the server log",
+					Desc: "This shouldn't happen, see the server log for details.",
 				}),
 			}, connection)
 			return
@@ -212,17 +212,18 @@ func joinGame(gameData websockets.GameData, connection *websocket.Conn) {
 				Kind: "JOIN_GAME",
 				Data: marshal(gameData),
 				Err: marshal(&websockets.ErrData{
-					Err:  "DUP_USER",
+					Err:  "USER_ALREADY_EXISTS",
 					Desc: "A user with the username: \"" + gameData.Username + "\" already exists in game: \"" + gameData.GameID + "\".",
 				}),
 			}, connection)
 			return
 		}
+		print("api", "There was a big problem")
 		websockets.SendToPlayer(&websockets.Response{
 			Kind: "JOIN_GAME",
 			Data: marshal(gameData),
 			Err: marshal(&websockets.ErrData{
-				Err:  "ERROR",
+				Err:  "UNKNOWN_ERROR",
 				Desc: "This shouldn't happen, see the server log for details.",
 			}),
 		}, connection)
