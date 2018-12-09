@@ -40,6 +40,12 @@ type LeaveData struct {
 	Reason   string `json:"reason,omitempty"`
 }
 
+type StartData struct {
+	Start    bool   `json:"start"`
+	Location string `json:"location"`
+	Role     string `json:"role"`
+}
+
 type ErrData struct {
 	Err  string `json:"error"`
 	Desc string `json:"description,omitempty"`
