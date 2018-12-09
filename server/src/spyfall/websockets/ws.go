@@ -7,6 +7,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var ClientById = make(map[string]*websocket.Conn)
+var ClientByConn = make(map[*websocket.Conn]string)
+
 //Websockets Upgrader
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -15,8 +18,6 @@ var upgrader = websocket.Upgrader{
 		return true
 	},
 }
-
-var Clients = make(map[string]*websocket.Conn)
 
 type Request struct {
 	Kind string `json:"kind"`
@@ -30,12 +31,13 @@ type Response struct {
 }
 
 type GameData struct {
-	GameID   string `json:"game-id"`
+	GameID   string `json:"gameid"`
 	Username string `json:"username"`
 }
 
-type StartData struct {
-	GameID string `json:"game-id"`
+type LeaveData struct {
+	Username string `json:"username"`
+	Reason   string `json:"reason,omitempty"`
 }
 
 type ErrData struct {
@@ -43,9 +45,6 @@ type ErrData struct {
 	Desc string `json:"description,omitempty"`
 }
 
-type Connection *websocket.Conn
-
-//The following two functions could _definitely_ be in main at their base functionality, but they are here in case we want to do any additional validation in the future.
 func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	connection, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -54,22 +53,8 @@ func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	return connection, nil
 }
 
-func SendToPlayer(response *Response, socket *websocket.Conn) (error, error) {
+func SendToPlayer(response *Response, connection *websocket.Conn) (error, error) {
 	r, marshalErr := json.Marshal(response)
-	writeErr := socket.WriteMessage(1, r)
+	writeErr := connection.WriteMessage(1, r)
 	return marshalErr, writeErr
-}
-
-//UNTESTED
-func SendToGame(response *Response, sockets []*websocket.Conn) (error, error) {
-	for i := range sockets {
-		marshalErr, writeErr := SendToPlayer(response, sockets[i])
-		if marshalErr != nil {
-			return marshalErr, nil
-		}
-		if writeErr != nil {
-			return nil, writeErr
-		}
-	}
-	return nil, nil
 }
