@@ -108,15 +108,61 @@ These are just for development. Some reference material for how web socket messa
 
 ```
 
+## Start Game
+
+### Message from client
+
+Start game is based on the websocket connection (so that it is not possible to start a game you are not a part of) so the message from the client does not require any associated data.
+
+```json
+{
+  "kind":"START_GAME",
+  "data":"{}"
+}
+```
+
+### Message from server if OK
+
+*//TODO Add stuff here*
+
+### Message from server if Error
+
+*//TODO Add stuff here*
+
+## Leave Game
+
+The same results can be achieved by simply closing the websocket connection
+
+### Message from client
+
+Start game is based on the websocket connection (so that it is not possible to leave a game you are not a part of) so the message from the client does not require any associated data.
+
+```json
+{
+  "kind":"LEAVE_GAME",
+  "data":"{}"
+}
+```
+
+### Message from server if OK
+
+*//TODO Add stuff here*
+
+### Message from server if Error
+
+*//TODO Add stuff here*
+
 ## Error Codes
 
-### Create Game Errors:
+### Create Game Errors
+
 | Error Code            | Error Description                                         | Response Description                            |
 |-----------------------|-----------------------------------------------------------|-------------------------------------------------|
 | `GAME_ALREADY_EXISTS` | Game already exists in the database.                      | `Game: \"GAMEID\"  already exists in database.` |
 | `UNKNOWN_ERROR`       | Something bad happened, but the server doesn't know what. | `This shouldn't happen, see the server log for details.`                            |
 
-### Join Game Errors:
+### Join Game Errors
+
 | Error Code            | Error Description                                            | Response Description                                                         |
 |-----------------------|--------------------------------------------------------------|------------------------------------------------------------------------------|
 | `NO_GAME_CODE`        | The user didn't supply a game code.                          | `Good luck joining a game with no code!`                                     |
