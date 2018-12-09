@@ -19,7 +19,7 @@ These are just for development. Some reference material for how web socket messa
 ```json
 {
   "kind": "CREATE_GAME",
-  "data": "{\"gameId\":\"\",\"username\":\"USERNAME\"}"
+  "data": "{\"gameid\":\"\",\"username\":\"USERNAME\"}"
 }
 ```
 
@@ -30,7 +30,7 @@ These are just for development. Some reference material for how web socket messa
 ```json
 {
   "kind": "CREATE_GAME",
-  "data": "{\"gameId\":\"\",\"username\":\"USERNAME\"}"
+  "data": "{\"gameid\":\"\",\"username\":\"USERNAME\"}"
 }
 ```
 
@@ -41,7 +41,7 @@ These are just for development. Some reference material for how web socket messa
 ```json
 {
   "kind": "CREATE_GAME",
-  "data": "{\"gameId\":\"GAMEID\",\"username\":\"USERNAME\"}",
+  "data": "{\"gameid\":\"GAMEID\",\"username\":\"USERNAME\"}",
   "error": "{\"error\":\"ERRORCODE\",\"description\":\"ERRORDESC\"}"
 }
 ```
@@ -52,8 +52,8 @@ These are just for development. Some reference material for how web socket messa
 
 ```json
 {
-  "trigger": "create-game",
-  "data": "{\"code\":\"GAMECODE\", \"username\":\"USERNAME\"}"
+  "kind": "CREATE_GAME",
+  "data": "{\"gameid\":\"GAMEID\", \"username\":\"USERNAME\"}"
 }
 ```
 
@@ -61,8 +61,8 @@ These are just for development. Some reference material for how web socket messa
 
 ```json
 {
-  "response": "OK",
-  "data": "GAMECODE"
+  "kind": "CREATE_GAME",
+  "data": "{\"gameid\":\"GAMEID\",\"username\":\"USERNAME\"}"
 }
 ```
 
@@ -70,8 +70,9 @@ These are just for development. Some reference material for how web socket messa
 
 ```json
 {
-  "response": "ERROR",
-  "data": "ERROR_MESSAGE"
+  "kind": "CREATE_GAME",
+  "data": "{\"gameid\":\"GAMEID\",\"username\":\"USERNAME\"}",
+  "error": "{\"error\":\"ERRORCODE\",\"description\":\"ERRORDESC\"}"
 }
 ```
 
@@ -81,8 +82,8 @@ These are just for development. Some reference material for how web socket messa
 
 ```json
 {
-  "trigger": "join-game",
-  "data": "{\"code\":\"GAMECODE\", \"username\":\"USERNAME\"}"
+  "kind": "JOIN_GAME",
+  "data": "{\"gameid\":\"GAMEID\", \"username\":\"USERNAME\"}"
 }
 ```
 
@@ -90,16 +91,22 @@ These are just for development. Some reference material for how web socket messa
 
 ```json
 {
-  "response": "OK",
-  "data": "GAMECODE"
+  "kind":"JOIN_GAME",
+  "data":"{\"gameid\":\"GAMEID\",\"username\":\"USERNAME\"}"
 }
+
 ```
 
 ### Response from server if Error
 
 ```json
 {
-  "response": "ERROR",
-  "data": "ERROR_MESSAGE"
+  "kind":"JOIN_GAME",
+  "data":"{\"gameid\":\"GAMEID\",\"username\":\"USERNAME\"}",
+  "error":"{\"error\":\"ERRORCODE\",\"description\":\"ERRORDESC\"}"
 }
+
 ```
+
+## Error Codes
+//TODO Add error codes here
