@@ -4,9 +4,9 @@ Go-Spy-Go is an implementation of the [Spyfall](http://international.hobbyworld.
 
 This is mostly a learning-focused project, so the codebase is a mess. It will get better over time... hopefully
 
-# Go Development
+# Project Setup
 
-To develop in this project with Go, you must set your `$GOPATH` enviorment variable to the `/server` directory in the root of this project. The project can be run by running `go run main.go` from the `/server/src/spyfall` directory or running `go run spyfall` from the `/server` directory.
+The `spyfall-server` directory must be symlinked to your `$GOPATH/src/` directory in order to be properly recognized by Go. The `setup.bat` (Windows) or `setup.sh` (Linux) scrips can be used to achieve this. To run the Go server, React project, and MongoDB server (development enviorment) use the `start.sh` script (Linux)
 
 # JSON Info
 
@@ -190,6 +190,8 @@ The same results can be achieved by simply closing the websocket connection
 ```
 
 ### Message from server if OK
+
+This is also sent to the other connected users of that specific game
 
 ```json
 {
