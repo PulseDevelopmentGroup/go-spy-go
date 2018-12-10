@@ -4,10 +4,12 @@ class MessageBroker {
   }
   
   handleMessage(message) {
-    const parsedMessage = this.parseMessage(message);
-    console.log(parsedMessage);
+    const msg = this.parseMessage(message);
+    console.log(msg);
     
-    
+    this.subs[msg.type].forEach((cb) => {
+      cb(msg);
+    })
   }
   
   subscribe(event, cb) {
@@ -21,9 +23,17 @@ class MessageBroker {
   parseMessage(e) {
     const parsedMessage = JSON.parse(e.data);
     try {
-      return {
-        type: parsedMessage.kind,
-        data: JSON.parse(parsedMessage.data)
+      if (!parsedMessage.error) {
+        return {
+          type: parsedMessage.kind,
+          data: JSON.parse(parsedMessage.data),
+        }
+      } else {
+        return {
+          type: parsedMessage.kind,
+          data: JSON.parse(parsedMessage.data),
+          error: JSON.parse(parsedMessage.data)
+        }
       }
     } catch (err) {
       console.log('Error occured while parsing socket message:', err);

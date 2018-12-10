@@ -33,6 +33,7 @@ export default class App extends Component {
 
     this.createGame = this.createGame.bind(this);
     this.joinGame = this.joinGame.bind(this);
+    this.setGame = this.setGame.bind(this);
 
     this.gameFunctions = {
       createGame: this.createGame,
@@ -42,6 +43,8 @@ export default class App extends Component {
 
   componentDidMount() {
     const socket = new WebSocket(`ws://${process.env.API_URL}/api`);
+
+    MessageBroker.subscribe('JOIN_GAME', this.setGame);
 
     socket.onopen = e => {
       this.socket = socket;
@@ -60,10 +63,9 @@ export default class App extends Component {
       socket.onmessage = e => {
         MessageBroker.handleMessage(e);
       };
-      socket.send(obj);
 
       window.onbeforeunload = () => {
-        console.log('firing');
+        console.log('Closing socket');
         socket.close();
       };
     };
@@ -81,7 +83,6 @@ export default class App extends Component {
     };
 
     const payload = packMessage('CREATE_GAME', JSON.stringify(gameObj));
-    console.log(payload);
     this.socket.send(payload);
   }
 
@@ -92,8 +93,18 @@ export default class App extends Component {
     };
 
     const payload = packMessage('JOIN_GAME', JSON.stringify(gameObj));
-    console.log(payload);
     this.socket.send(payload);
+  }
+
+  setGame(payload) {
+    const { gameId: id, username } = payload.data;
+
+    this.setState({
+      gameData: {
+        id,
+        username,
+      },
+    });
   }
 
   render() {
