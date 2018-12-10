@@ -1,7 +1,21 @@
 class MessageBroker {
+  constructor() {
+    this.subs = {};
+  }
+  
   handleMessage(message) {
     const parsedMessage = this.parseMessage(message);
     console.log(parsedMessage);
+    
+    
+  }
+  
+  subscribe(event, cb) {
+    if (!this.subs[event]) {
+      this.subs[event] = [];
+    }
+    
+    this.subs[event].push(cb);
   }
   
   parseMessage(e) {

@@ -32,9 +32,11 @@ export default class App extends Component {
     this.socket = null;
 
     this.createGame = this.createGame.bind(this);
+    this.joinGame = this.joinGame.bind(this);
 
     this.gameFunctions = {
       createGame: this.createGame,
+      joinGame: this.joinGame,
     };
   }
 
@@ -79,6 +81,17 @@ export default class App extends Component {
     };
 
     const payload = packMessage('CREATE_GAME', JSON.stringify(gameObj));
+    console.log(payload);
+    this.socket.send(payload);
+  }
+
+  joinGame(id, username) {
+    const gameObj = {
+      gameId: id || '',
+      username: username,
+    };
+
+    const payload = packMessage('JOIN_GAME', JSON.stringify(gameObj));
     console.log(payload);
     this.socket.send(payload);
   }

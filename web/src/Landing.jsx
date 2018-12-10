@@ -126,6 +126,11 @@ export default class Landing extends Component {
         this.state.gameInfo.gameId,
         this.state.gameInfo.userName
       );
+    } else if (this.state.showJoin) {
+      this.props.gameFunctions.joinGame(
+        this.state.gameInfo.gameId,
+        this.state.gameInfo.userName
+      );
     }
   }
 
