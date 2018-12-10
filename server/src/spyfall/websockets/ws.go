@@ -46,6 +46,11 @@ type StartData struct {
 	Role     string `json:"role"`
 }
 
+type JoinData struct {
+	Username string `json:"username"`
+	Pid      string `json:"pid"`
+}
+
 type ErrData struct {
 	Err  string `json:"error"`
 	Desc string `json:"description,omitempty"`

@@ -248,6 +248,24 @@ func joinGame(gameData websockets.GameData, connection *websocket.Conn) {
 
 	print("ws", "Associating this connection with player id: "+pid.Hex())
 
+	players, err := db.GetPlayers(gameData.GameID)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	for i := 0; i < len(players); i++ {
+		if players[i].PlayerID != pid {
+			websockets.SendToPlayer(&websockets.Response{
+				Kind: "JOIN_GAME",
+				Data: marshal(&websockets.JoinData{
+					Username: gameData.Username,
+					Pid:      pid.Hex(),
+				}),
+			}, websockets.ClientById[players[i].PlayerID.Hex()])
+		}
+	}
+
 	websockets.SendToPlayer(&websockets.Response{
 		Kind: "JOIN_GAME",
 		Data: marshal(gameData),
