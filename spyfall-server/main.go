@@ -51,13 +51,12 @@ func main() {
 
 	print("db", "Attempting to connect to database: \""+config.Databse.Name+"\" at: "+config.Databse.Host+":"+config.Databse.Port)
 
-	db.Connect(&db.DBO{
+	dbErr := db.Connect(&db.DBO{
 		Server:         config.Databse.Host + ":" + config.Databse.Port,
 		Database:       config.Databse.Name,
 		GameCollection: config.Databse.Collection,
 	})
-	if err != nil {
-		fmt.Println(err)
+	if dbErr != nil {
 		print("db", "Unable to connect to database!")
 	} else {
 		print("db", "Connected to database!")
@@ -70,7 +69,7 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	http.FileServer(http.Dir("public"))
+	http.FileServer(http.Dir("public/"))
 }
 
 func apiHandler(w http.ResponseWriter, r *http.Request) {
