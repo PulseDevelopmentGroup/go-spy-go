@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+</head>
+<body>
+  <h1>Welcome to janky Spyfall</h1>
+
+  <form id="startselector">
+    <input type="radio" name="startselection" value="create"> Create <br>
+    <input type="radio" name="startselection" value="join"> Join <br>
+  </form>
+
+  <form id="create-game" style="display: none">
+    Username <input type="text" id="username" value=""> <br>
+    Game Code (Blank for Random) <input type="text" id="gamecode" value=""> <br>
+    <input type="button" id="create-button" value="Go">
+  </form>
+  <form id="join-game" style="display: none">
+      Username <input type="text" id="username" value=""> <br>
+      Game Code <input type="text" id="gamecode" value=""> <br>
+      <input type="button" id="join-button" value="Go">
+  </form>
+
+
+  <script src="spyfall.js"></script>
+</body>
+</html>
