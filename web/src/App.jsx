@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { packMessage } from './utils/socketUtils';
@@ -7,6 +7,7 @@ import MessageBroker from './utils/messageBroker';
 
 import GlobalStyles from './components/Global';
 import Landing from './Landing';
+import Game from './Game';
 
 const Container = styled.div`
   display: flex;
@@ -112,6 +113,7 @@ export default class App extends Component {
       <Router>
         <Container>
           <GlobalStyles />
+          <Link to="/game/abc123">This link</Link>
           <Route
             exact
             path="/"
@@ -119,6 +121,7 @@ export default class App extends Component {
               <Landing {...props} gameFunctions={this.gameFunctions} />
             )}
           />
+          <Route exact path="/game/:gameid" component={Game} />
         </Container>
       </Router>
     );

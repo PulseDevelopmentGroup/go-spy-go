@@ -3,7 +3,8 @@
 *.a
 
 /web/node_modules
-/public
+web/public*
+/public*
 *package-lock.json
 
 .idea/*
