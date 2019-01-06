@@ -20,6 +20,14 @@ class MessageBroker {
     this.subs[event].push(cb);
   }
   
+  unsubscribe(event, cb) {
+    if (!this.subs[event]) {
+      return;
+    }
+    
+    delete this.subs[event];
+  }
+  
   parseMessage(e) {
     const parsedMessage = JSON.parse(e.data);
     try {
