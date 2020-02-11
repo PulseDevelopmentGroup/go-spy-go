@@ -1,4 +1,4 @@
-# Readme Stuff
+# Go-Spy-Go
 
 Go-Spy-Go is an implementation of the [Spyfall](http://international.hobbyworld.ru/spyfall) party game, built by [Josiah](https://josnun.github.io/) and [Carson](https://carsonseese.com) in React and Go.
 
