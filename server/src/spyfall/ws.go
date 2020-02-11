@@ -1,4 +1,4 @@
-package websockets
+package main
 
 import (
 	"encoding/json"
@@ -16,29 +16,29 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-type Request struct {
+type request struct {
 	Kind string `json:"kind"`
 	Data string `json:"data"`
 }
 
-type Response struct {
+type response struct {
 	Kind string `json:"kind"`
 	Data string `json:"data"`
 	Err  string `json:"error,omitempty"`
 }
 
-type GameData struct {
-	GameId   string `json:"game-id"`
+type gameData struct {
+	GameID   string `json:"game-id"`
 	Username string `json:"username"`
 }
 
-type ErrData struct {
+type errData struct {
 	Err  string `json:"error"`
 	Desc string `json:"description,omitempty"`
 }
 
 //The following two functions could _definitely_ be in main at their base functionality, but they are here in case we want to do any additional validation in the future.
-func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
+func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	connection, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	return connection, nil
 }
 
-func ClientResponse(response *Response, socket *websocket.Conn) (error, error) {
+func clientResponse(response *response, socket *websocket.Conn) (error, error) {
 	r, marshalErr := json.Marshal(response)
 	writeErr := socket.WriteMessage(1, r)
 	return marshalErr, writeErr

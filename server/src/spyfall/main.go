@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"spyfall/db"
-	"spyfall/websockets"
 	"time"
 )
 
@@ -22,13 +20,13 @@ var apiport = "8080"
 func main() {
 	print("general", "Attempting to connect to database: \""+dbname+"\" at: "+dbaddr+":"+dbport)
 
-	dbo := &db.DBO{
+	dbo := &dbo{
 		Server:         dbaddr + ":" + dbport,
 		Database:       dbname,
 		GameCollection: dbgamecollection,
 	}
 
-	err := db.Connect(dbo)
+	err := connect(dbo)
 	if err != nil {
 		fmt.Println(err)
 		print("db", "Unable to connect to database!")
@@ -47,14 +45,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func api(w http.ResponseWriter, r *http.Request) {
-	connection, err := websockets.Upgrade(w, r)
+	connection, err := upgrade(w, r)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	for {
-		var request websockets.Request
+		var request request
 		connection.ReadJSON(&request)
 
 		fmt.Println(request)
@@ -63,9 +61,9 @@ func api(w http.ResponseWriter, r *http.Request) {
 
 		switch request.Kind {
 		case "CREATE_GAME":
-			websockets.ClientResponse(createGame(request.Data), connection)
+			clientResponse(createGame(request.Data), connection)
 		case "JOIN_GAME":
-			websockets.ClientResponse(joinGame(request.Data), connection)
+			clientResponse(joinGame(request.Data), connection)
 		case "START_GAME":
 			//Start game
 		case "STOP_GAME":
@@ -73,11 +71,11 @@ func api(w http.ResponseWriter, r *http.Request) {
 		case "LEAVE_GAME":
 			//Leave game
 		default:
-			fmt.Errorf("\"%s\" is not a valid kind.", request.Kind)
-			websockets.ClientResponse(&websockets.Response{
+			fmt.Errorf("\"%s\" is not a valid kind", request.Kind)
+			clientResponse(&response{
 				Kind: request.Kind,
 				Data: request.Data,
-				Err: marshal(&websockets.ErrData{
+				Err: marshal(&errData{
 					Err:  "NOT_VALID_KIND",
 					Desc: "\"" + request.Kind + "\" is not a valid kind.",
 				}),
@@ -86,80 +84,80 @@ func api(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createGame(data string) *websockets.Response {
+func createGame(data string) *response {
 	var code string
-	var gameData websockets.GameData
-	json.Unmarshal([]byte(data), &gameData)
+	var gameInfo gameData
+	json.Unmarshal([]byte(data), &gameInfo)
 
-	if gameData.GameId == "" {
+	if gameInfo.GameID == "" {
 		code = generateCode()
 	} else {
-		code = gameData.GameId
+		code = gameInfo.GameID
 	}
 
-	err := db.NewGame(code, "spy-school") //This needs to be randomly generated
+	err := newGame(code, "spy-school") //This needs to be randomly generated
 	if err != nil {
 		fmt.Println(err)
 		print("api", "Game \""+code+"\" already exists in database.")
-		return &websockets.Response{
+		return &response{
 			Kind: "CREATE_GAME",
-			Data: marshal(&websockets.GameData{
-				GameId:   code,
-				Username: gameData.Username,
+			Data: marshal(&gameData{
+				GameID:   code,
+				Username: gameInfo.Username,
 			}),
-			Err: marshal(&websockets.ErrData{
+			Err: marshal(&errData{
 				Err:  "GAME_ALREADY_EXISTS",
 				Desc: "Game: \"" + code + "\" already exists in database.",
 			}),
 		}
-	} else {
-		print("api", "Game \""+code+"\" doesn't exist, creating...")
-		joinGame(marshal(&websockets.GameData{
-			GameId:   code,
-			Username: gameData.Username,
-		}))
-		return &websockets.Response{
-			Kind: "CREATE_GAME",
-			Data: marshal(&websockets.GameData{
-				GameId:   code,
-				Username: gameData.Username,
-			}),
-		}
+	}
+
+	print("api", "Game \""+code+"\" doesn't exist, creating...")
+	joinGame(marshal(&gameData{
+		GameID:   code,
+		Username: gameInfo.Username,
+	}))
+	return &response{
+		Kind: "CREATE_GAME",
+		Data: marshal(&gameData{
+			GameID:   code,
+			Username: gameInfo.Username,
+		}),
 	}
 }
 
-func joinGame(data string) *websockets.Response {
-	var gameData websockets.GameData
+func joinGame(data string) *response {
+	var gameData gameData
 	json.Unmarshal([]byte(data), &gameData)
 
-	if gameData.GameId == "" {
+	if gameData.GameID == "" {
 		print("api", "Game code blank, error")
-		return &websockets.Response{
+		return &response{
 			Kind: "JOIN_GAME",
 			Data: data,
-			Err: marshal(&websockets.ErrData{
+			Err: marshal(&errData{
 				Err:  "NO_GAME_CODE",
 				Desc: "Good luck joining a game with no code!",
 			}),
 		}
 	}
 
-	err := db.AddPlayer(gameData.GameId, gameData.Username)
+	err := addPlayer(gameData.GameID, gameData.Username)
 	if err != nil {
 		fmt.Println(err)
-		print("api", "Game \""+gameData.GameId+"\" not found in database, error")
-		return &websockets.Response{
+		print("api", "Game \""+gameData.GameID+"\" not found in database, error")
+		return &response{
 			Kind: "JOIN_GAME",
 			Data: data,
-			Err: marshal(&websockets.ErrData{
+			Err: marshal(&errData{
 				Err:  "NO_GAME",
-				Desc: "The game: \"" + gameData.GameId + "\" does not exist.",
+				Desc: "The game: \"" + gameData.GameID + "\" does not exist.",
 			}),
 		}
 
 	}
-	print("api", "Game \""+gameData.GameId+"\" found in database, joining...")
-	return &websockets.Response{
+	print("api", "Game \""+gameData.GameID+"\" found in database, joining...")
+	return &response{
 		Kind: "JOIN_GAME",
 		Data: data,
 	}

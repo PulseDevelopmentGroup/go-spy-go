@@ -1,4 +1,4 @@
-package db
+package main
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type DBO struct {
+type dbo struct {
 	Server         string
 	Database       string
 	GameCollection string
@@ -28,7 +28,7 @@ type gameTemplate struct {
 
 var collection *mgo.Collection
 
-func Connect(dbo *DBO) error {
+func connect(dbo *dbo) error {
 	session, err := mgo.Dial(dbo.Server)
 	if err != nil {
 		return err
@@ -40,33 +40,32 @@ func Connect(dbo *DBO) error {
 	return nil
 }
 
-func AddPlayer(gamecode, username string) error {
+func addPlayer(gamecode, username string) error {
 	gameCount, err := collection.Find(bson.M{"gamecode": gamecode}).Limit(1).Count()
 	if err != nil {
 		return err
 	}
 	if gameCount == 0 {
 		return fmt.Errorf("No game exists with gamecode: %s", gamecode)
-	} else {
-		//Neither of the following work so...
-		/*usernameCount, err := collection.Find(bson.M{"gamecode": gamecode, "players": bson.M{"username": username}}).Limit(1).Count() //Probably need to get more specific, filtering by gamecode first
-		usernameCount, err := collection.Find(bson.M{"gamecode": gamecode}).Limit(1).Select(bson.M{"players": bson.M{"$elemMatch": bson.M{"username": username}}}).Count()
-		if err != nil {
-			return err
-		}*/
-		if /*usernameCount */ 0 > 1 {
-			return err
-		} else {
-			return collection.Update(bson.M{"gamecode": gamecode}, bson.M{"$push": bson.M{"players": &player{ //This works, so that's neat
-				PlayerID: bson.NewObjectId(),
-				Username: username,
-				Spy:      false,
-			}}})
-		}
 	}
+	//Neither of the following work so...
+	/*usernameCount, err := collection.Find(bson.M{"gamecode": gamecode, "players": bson.M{"username": username}}).Limit(1).Count() //Probably need to get more specific, filtering by gamecode first
+	usernameCount, err := collection.Find(bson.M{"gamecode": gamecode}).Limit(1).Select(bson.M{"players": bson.M{"$elemMatch": bson.M{"username": username}}}).Count()
+	if err != nil {
+		return err
+	}*/
+	if /*usernameCount */ 0 > 1 {
+		return err
+	}
+
+	return collection.Update(bson.M{"gamecode": gamecode}, bson.M{"$push": bson.M{"players": &player{ //This works, so that's neat
+		PlayerID: bson.NewObjectId(),
+		Username: username,
+		Spy:      false,
+	}}})
 }
 
-func NewGame(gamecode, location string) error {
+func newGame(gamecode, location string) error {
 	return insertEntry(&gameTemplate{
 		ID:       bson.NewObjectId(),
 		GameCode: gamecode,
