@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import styled from 'styled-components';
+import styled from '@emotion/styled';
 
 import { Button } from './components/Button';
 
@@ -35,9 +35,7 @@ const ConnectFields = styled.form`
   align-items: center;
 `;
 
-const StyledTextField = styled.input.attrs({
-  type: 'text',
-})`
+const StyledTextField = styled.input`
   margin: 10px 15px;
   padding: 5px 10px;
 
@@ -52,12 +50,14 @@ const CreateControls = props => {
       <StyledTextField
         placeholder="Game ID"
         name="gameId"
+        type="text"
         value={props.gameId}
         onChange={props.onChange}
       />
       <StyledTextField
         placeholder="Username"
         name="userName"
+        type="text"
         value={props.userName}
         onChange={props.onChange}
       />
@@ -71,12 +71,14 @@ const JoinControls = props => {
       <StyledTextField
         placeholder="Game ID"
         name="gameId"
+        type="text"
         value={props.gameId}
         onChange={props.onChange}
       />
       <StyledTextField
         placeholder="Username"
         name="userName"
+        type="text"
         value={props.userName}
         onChange={props.onChange}
       />

@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import styled from 'styled-components';
+import styled from '@emotion/styled';
 
-import GlobalStyles from './components/Global';
-import Landing from './Landing';
+import GlobalStyles from '../web/src/components/Global';
+import Landing from '../web/src/Landing';
 
 const Container = styled.div`
   display: flex;
