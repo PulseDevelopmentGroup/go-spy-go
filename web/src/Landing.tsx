@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import styled from '@emotion/styled';
 
 import { Button } from './components/Button';
+import { GameInfo } from './models';
 
 const StyledLanding = styled.div``;
 
@@ -44,7 +45,13 @@ const StyledTextField = styled.input`
   font-size: 1.2em;
 `;
 
-const CreateControls = props => {
+interface ControlsProps {
+  gameId: string;
+  userName: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const CreateControls: React.FC<ControlsProps> = props => {
   return (
     <>
       <StyledTextField
@@ -65,7 +72,7 @@ const CreateControls = props => {
   );
 };
 
-const JoinControls = props => {
+const JoinControls: React.FC<ControlsProps> = props => {
   return (
     <>
       <StyledTextField
@@ -88,14 +95,26 @@ const JoinControls = props => {
 
 const SubmitBtn = styled(Button)``;
 
-export default class Landing extends Component {
-  constructor() {
-    super();
+interface Props {}
+
+interface State {
+  gameInfo: GameInfo;
+  showCreate: boolean;
+  showJoin: boolean;
+}
+
+export default class Landing extends Component<Props, State> {
+  form: React.RefObject<HTMLFormElement>;
+  constructor(props: Props) {
+    super(props);
 
     this.state = {
       showCreate: false,
       showJoin: false,
-      gameInfo: {},
+      gameInfo: {
+        gameId: '',
+        userName: '',
+      },
     };
 
     this.form = React.createRef();
@@ -125,13 +144,15 @@ export default class Landing extends Component {
     debugger;
   }
 
-  changeHandler(e) {
+  changeHandler(e: React.ChangeEvent<HTMLInputElement>) {
     const name = e.target.name;
     const value = e.target.value;
 
-    let newGameInfo = this.state.gameInfo;
+    let newGameInfo = {
+      ...this.state.gameInfo,
+    };
 
-    newGameInfo[name] = value;
+    newGameInfo[name as keyof GameInfo] = value;
 
     this.setState({
       gameInfo: newGameInfo,
@@ -190,7 +211,7 @@ export default class Landing extends Component {
             />
           )}
           {(this.state.showCreate || this.state.showJoin) && (
-            <SubmitBtn as="input" type="submit" value="Submit" />
+            <SubmitBtn type="submit">Submit</SubmitBtn>
           )}
         </ConnectFields>
       </StyledLanding>
