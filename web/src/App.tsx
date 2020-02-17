@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import styled from '@emotion/styled';
+import SocketManager, { Action } from './store/SocketManager';
 
 import Landing from './Landing';
 
@@ -25,35 +26,21 @@ export default class App extends Component<Props, any> {
   constructor(props: Props) {
     super(props);
 
-    this.state = {
-      socket: null,
-    };
+    this.state = {};
   }
 
   componentDidMount() {
     const socket = new WebSocket(`ws://${process.env.REACT_APP_API_URL}/api`);
 
     socket.onopen = e => {
-      this.setState({
-        socket,
-      });
+      SocketManager.init(socket);
 
       let message = {
-        type: 'create-game',
+        kind: 'CREATE_GAME',
         data: '{"code":"", "username":"user"}',
-      };
+      } as Action<any>;
 
-      let obj = JSON.stringify(message);
-
-      socket.send(obj);
-      socket.onmessage = e => {
-        console.log(e);
-      };
-
-      window.onbeforeunload = () => {
-        console.log('firing');
-        socket.close();
-      };
+      SocketManager.sendMessage(message);
     };
   }
 
